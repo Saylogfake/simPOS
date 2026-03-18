@@ -33,6 +33,9 @@ namespace SaasPos.Backend.Controllers
             if (string.IsNullOrEmpty(expectedKey) || seedKey != expectedKey)
                 return Unauthorized(new { message = "X-Seed-Key inválido o no configurado" });
 
+            try
+            {
+
             // Roles
             if (!await _context.Roles.AnyAsync())
             {
@@ -271,6 +274,11 @@ namespace SaasPos.Backend.Controllers
             }
 
             return Ok("Seeding Database SUCCESS");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message, inner = ex.InnerException?.Message, stack = ex.StackTrace });
+            }
         }
     }
 }
