@@ -35,8 +35,12 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 // DbContext — usa Postgres si la connection string empieza con "Host=", SQLite en caso contrario
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException("DefaultConnection is not configured.");
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrEmpty(connectionString))
+{
+    Console.WriteLine("WARNING: DefaultConnection not configured. Using SQLite fallback. Set ConnectionStrings__DefaultConnection in Railway Variables.");
+    connectionString = "Data Source=/app/fallback.db";
+}
 
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
@@ -47,8 +51,12 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 });
 
 // Authentication
-var jwtSecret = builder.Configuration["JWT_SECRET"]
-    ?? throw new InvalidOperationException("JWT_SECRET is not configured. Set it in appsettings or environment variables.");
+var jwtSecret = builder.Configuration["JWT_SECRET"];
+if (string.IsNullOrEmpty(jwtSecret))
+{
+    Console.WriteLine("WARNING: JWT_SECRET not configured. Using insecure default. Set JWT_SECRET in Railway Variables.");
+    jwtSecret = "INSECURE_DEFAULT_CHANGE_ME_IN_PRODUCTION_12345678901234567890";
+}
 var key = Encoding.ASCII.GetBytes(jwtSecret);
 
 builder.Services.AddAuthentication(options =>
@@ -74,11 +82,11 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        var frontendUrl = builder.Configuration["FRONTEND_URL"]
-            ?? throw new InvalidOperationException("FRONTEND_URL is not configured.");
-        policy.WithOrigins(frontendUrl)
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+        var frontendUrl = builder.Configuration["FRONTEND_URL"];
+        if (string.IsNullOrEmpty(frontendUrl))
+            policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
+        else
+            policy.WithOrigins(frontendUrl).AllowAnyMethod().AllowAnyHeader();
     });
 });
 
