@@ -1,0 +1,19 @@
+# Env files con secrets reales - NUNCA subir a git
+.env
+
+# Base de datos SQLite local
+backend/*.db
+backend/*.db-shm
+backend/*.db-wal
+
+# Build artifacts
+backend/bin/
+backend/obj/
+
+# Frontend
+saas-pos/node_modules/
+saas-pos/.next/
+saas-pos/.env.local
+
+# Stitch mockups (diseños, no código)
+stitch/
