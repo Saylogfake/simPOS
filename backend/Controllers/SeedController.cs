@@ -12,19 +12,27 @@ namespace SaasPos.Backend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "SUPERADMIN")]
     public class SeedController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IConfiguration _config;
 
-        public SeedController(AppDbContext context)
+        public SeedController(AppDbContext context, IConfiguration config)
         {
             _context = context;
+            _config = config;
         }
 
+        // Requiere header X-Seed-Key con el valor de SEED_SECRET del entorno
+        // En producción: set SEED_SECRET=una_clave_secreta en las variables de entorno
+        // Llamar: GET /api/seed con header X-Seed-Key: <tu_clave>
         [HttpGet]
-        public async Task<IActionResult> Seed()
+        public async Task<IActionResult> Seed([FromHeader(Name = "X-Seed-Key")] string? seedKey)
         {
+            var expectedKey = _config["SEED_SECRET"];
+            if (string.IsNullOrEmpty(expectedKey) || seedKey != expectedKey)
+                return Unauthorized(new { message = "X-Seed-Key inválido o no configurado" });
+
             // Roles
             if (!await _context.Roles.AnyAsync())
             {
