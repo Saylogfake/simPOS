@@ -104,12 +104,21 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var db = serviceProvider.GetRequiredService<AppDbContext>();
-        db.Database.Migrate();
-        Console.WriteLine("Database migration completed successfully.");
+        if (connectionString.StartsWith("Host=", StringComparison.OrdinalIgnoreCase))
+        {
+            // Postgres: crear tablas directamente desde el modelo
+            db.Database.EnsureCreated();
+        }
+        else
+        {
+            // SQLite: usar migraciones
+            db.Database.Migrate();
+        }
+        Console.WriteLine("Database initialized successfully.");
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"An error occurred during database migration: {ex.Message}");
+        Console.WriteLine($"An error occurred during database initialization: {ex.Message}");
     }
 }
 
