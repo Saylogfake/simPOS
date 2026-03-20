@@ -34,17 +34,28 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// DbContext — usa Postgres si la connection string empieza con "Host=", SQLite en caso contrario
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+// DbContext — detecta Postgres (Host= o postgresql://) o SQLite
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? Environment.GetEnvironmentVariable("DATABASE_URL");
+
 if (string.IsNullOrEmpty(connectionString))
 {
-    Console.WriteLine("WARNING: DefaultConnection not configured. Using SQLite fallback. Set ConnectionStrings__DefaultConnection in Railway Variables.");
+    Console.WriteLine("WARNING: DefaultConnection not configured. Using SQLite fallback.");
     connectionString = "Data Source=/app/fallback.db";
 }
 
+// Railway genera URLs tipo postgresql://user:pass@host:port/db — convertir a formato Npgsql
+if (connectionString.StartsWith("postgresql://") || connectionString.StartsWith("postgres://"))
+{
+    var uri = new Uri(connectionString);
+    connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={uri.UserInfo.Split(':')[0]};Password={uri.UserInfo.Split(':')[1]};SSL Mode=Require;Trust Server Certificate=true";
+}
+
+bool isPostgres = connectionString.StartsWith("Host=", StringComparison.OrdinalIgnoreCase);
+
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
-    if (connectionString.StartsWith("Host=", StringComparison.OrdinalIgnoreCase))
+    if (isPostgres)
         options.UseNpgsql(connectionString);
     else
         options.UseSqlite(connectionString);
@@ -104,16 +115,10 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var db = serviceProvider.GetRequiredService<AppDbContext>();
-        if (connectionString.StartsWith("Host=", StringComparison.OrdinalIgnoreCase))
-        {
-            // Postgres: crear tablas directamente desde el modelo
+        if (isPostgres)
             db.Database.EnsureCreated();
-        }
         else
-        {
-            // SQLite: usar migraciones
             db.Database.Migrate();
-        }
         Console.WriteLine("Database initialized successfully.");
     }
     catch (Exception ex)
