@@ -34,15 +34,12 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// DbContext — detecta Postgres (Host= o postgresql://) o SQLite
+// DbContext — solo Postgres
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? Environment.GetEnvironmentVariable("DATABASE_URL");
 
 if (string.IsNullOrEmpty(connectionString))
-{
-    Console.WriteLine("WARNING: DefaultConnection not configured. Using SQLite fallback.");
-    connectionString = "Data Source=/app/fallback.db";
-}
+    throw new InvalidOperationException("No database connection string configured. Set ConnectionStrings__DefaultConnection or DATABASE_URL.");
 
 // Railway genera URLs tipo postgresql://user:pass@host:port/db — convertir a formato Npgsql
 if (connectionString.StartsWith("postgresql://") || connectionString.StartsWith("postgres://"))
@@ -51,15 +48,8 @@ if (connectionString.StartsWith("postgresql://") || connectionString.StartsWith(
     connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={uri.UserInfo.Split(':')[0]};Password={uri.UserInfo.Split(':')[1]};SSL Mode=Require;Trust Server Certificate=true";
 }
 
-bool isPostgres = connectionString.StartsWith("Host=", StringComparison.OrdinalIgnoreCase);
-
 builder.Services.AddDbContext<AppDbContext>(options =>
-{
-    if (isPostgres)
-        options.UseNpgsql(connectionString);
-    else
-        options.UseSqlite(connectionString);
-});
+    options.UseNpgsql(connectionString));
 
 // Authentication
 var jwtSecret = builder.Configuration["JWT_SECRET"];
@@ -115,10 +105,7 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var db = serviceProvider.GetRequiredService<AppDbContext>();
-        if (isPostgres)
-            db.Database.EnsureCreated();
-        else
-            db.Database.Migrate();
+        db.Database.EnsureCreated();
         Console.WriteLine("Database initialized successfully.");
     }
     catch (Exception ex)
