@@ -115,6 +115,14 @@ using (var scope = app.Services.CreateScope())
             db.Database.Migrate();
         }
         Console.WriteLine("Database initialized successfully.");
+
+        // Seed initial data only when the database is empty (first deploy)
+        if (!db.Users.Any())
+        {
+            Console.WriteLine("Empty database detected — seeding initial data...");
+            db.SeedData();
+            Console.WriteLine("Database seeded successfully.");
+        }
     }
     catch (Exception ex)
     {
