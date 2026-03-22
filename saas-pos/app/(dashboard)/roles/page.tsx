@@ -45,6 +45,7 @@ export default function RolesPage() {
     const [roles, setRoles]               = useState<Role[]>([])
     const [selectedRole, setSelectedRole] = useState<Role | null>(null)
     const [roleSaving, setRoleSaving]     = useState(false)
+    const [saveResult, setSaveResult]     = useState<"success" | "error" | null>(null)
 
     /* — users state — */
     const [users, setUsers]       = useState<User[]>([])
@@ -106,14 +107,24 @@ export default function RolesPage() {
     const savePermissions = async () => {
         if (!selectedRole) return
         setRoleSaving(true)
+        setSaveResult(null)
         try {
             const res = await fetch(`${API}/api/roles/${selectedRole.id}/permissions`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
                 body: JSON.stringify({ permissionCodes: selectedRole.permissions }),
             })
-            if (res.ok) fetchRoles()
-        } catch (e) { console.error(e) }
+            if (res.ok) {
+                setSaveResult("success")
+                fetchRoles()
+                setTimeout(() => setSaveResult(null), 3000)
+            } else {
+                setSaveResult("error")
+            }
+        } catch (e) {
+            console.error(e)
+            setSaveResult("error")
+        }
         finally { setRoleSaving(false) }
     }
 
@@ -453,10 +464,24 @@ export default function RolesPage() {
                         <div className="fixed bottom-0 left-0 right-0 xl:left-64 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 p-6 z-40">
                             <div className="max-w-5xl mx-auto flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    <div className="size-2 rounded-full bg-amber-500 animate-pulse" />
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                                        Cambios pendientes para <span className="text-slate-900 dark:text-white italic">{selectedRole?.name}</span>
-                                    </p>
+                                    {saveResult === "success" ? (
+                                        <>
+                                            <div className="size-2 rounded-full bg-emerald-500" />
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Permisos guardados correctamente</p>
+                                        </>
+                                    ) : saveResult === "error" ? (
+                                        <>
+                                            <div className="size-2 rounded-full bg-rose-500" />
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-rose-500">Error al guardar. Verifica tu sesión.</p>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className="size-2 rounded-full bg-amber-500 animate-pulse" />
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                                Cambios pendientes para <span className="text-slate-900 dark:text-white italic">{selectedRole?.name}</span>
+                                            </p>
+                                        </>
+                                    )}
                                 </div>
                                 <div className="flex gap-4">
                                     <button onClick={fetchRoles} className="px-6 py-2 text-xs font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">Descartar</button>

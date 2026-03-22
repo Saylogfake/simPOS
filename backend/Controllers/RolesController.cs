@@ -37,7 +37,7 @@ namespace SaasPos.Backend.Controllers
         }
 
         [HttpPut("{id}/permissions")]
-        [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SUPERADMIN")]
+        [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SUPERADMIN,ADMIN")]
         public async Task<IActionResult> UpdatePermissions(Guid id, [FromBody] UpdateRolePermissionsRequest request)
         {
             var role = await _context.Roles.FindAsync(id);
