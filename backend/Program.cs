@@ -107,6 +107,14 @@ using (var scope = app.Services.CreateScope())
         var db = serviceProvider.GetRequiredService<AppDbContext>();
         db.Database.EnsureCreated();
         Console.WriteLine("Database initialized successfully.");
+
+        // Seed initial data only when the database is empty (first deploy)
+        if (!db.Users.Any())
+        {
+            Console.WriteLine("Empty database detected — seeding initial data...");
+            db.SeedData();
+            Console.WriteLine("Database seeded successfully.");
+        }
     }
     catch (Exception ex)
     {
