@@ -422,7 +422,7 @@ export default function RolesPage() {
                                                                     {permission.group === "Inventory" && "inventory_2"}
                                                                     {permission.group === "Sales"     && "point_of_sale"}
                                                                     {permission.group === "Cash"      && "payments"}
-                                                                    {permission.group === "Users"     && "person_cog"}
+                                                                    {permission.group === "Users"     && "manage_accounts"}
                                                                     {permission.group === "Audit"     && "monitoring"}
                                                                 </span>
                                                             </div>
