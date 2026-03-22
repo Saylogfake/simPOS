@@ -111,6 +111,7 @@ using (var scope = app.Services.CreateScope())
         // Migrations manuales: agregar columnas nuevas si no existen
         var columnMigrations = new[]
         {
+            @"ALTER TABLE ""Products"" ADD COLUMN IF NOT EXISTS ""TenantId"" uuid NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000';",
             @"ALTER TABLE ""Products"" ADD COLUMN IF NOT EXISTS ""TrackStock"" boolean NOT NULL DEFAULT true;",
             @"ALTER TABLE ""Products"" ADD COLUMN IF NOT EXISTS ""SaleType"" text NOT NULL DEFAULT 'UNIT';",
             @"ALTER TABLE ""Products"" ADD COLUMN IF NOT EXISTS ""DiscountPercentage"" numeric NOT NULL DEFAULT 0;",
@@ -126,6 +127,28 @@ using (var scope = app.Services.CreateScope())
         {
             try { db.Database.ExecuteSqlRaw(sql); }
             catch (Exception colEx) { Console.WriteLine($"Column migration skipped: {colEx.Message}"); }
+        }
+
+        // Fix: si hay productos/categorías con TenantId vacío, asignarles el primer tenant activo
+        try
+        {
+            var firstTenant = db.Tenants.OrderBy(t => t.CreatedAt).FirstOrDefault();
+            if (firstTenant != null)
+            {
+                db.Database.ExecuteSqlRaw($@"
+                    UPDATE ""Products"" SET ""TenantId"" = '{firstTenant.Id}'
+                    WHERE ""TenantId"" = '00000000-0000-0000-0000-000000000000';
+                ");
+                db.Database.ExecuteSqlRaw($@"
+                    UPDATE ""Categories"" SET ""TenantId"" = '{firstTenant.Id}'
+                    WHERE ""TenantId"" = '00000000-0000-0000-0000-000000000000';
+                ");
+                Console.WriteLine($"TenantId fix applied for tenant: {firstTenant.Name} ({firstTenant.Id})");
+            }
+        }
+        catch (Exception tenantFixEx)
+        {
+            Console.WriteLine($"TenantId fix skipped: {tenantFixEx.Message}");
         }
 
         // Seed initial data only when the database is empty (first deploy)
