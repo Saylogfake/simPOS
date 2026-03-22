@@ -109,9 +109,24 @@ using (var scope = app.Services.CreateScope())
         Console.WriteLine("Database initialized successfully.");
 
         // Migrations manuales: agregar columnas nuevas si no existen
-        db.Database.ExecuteSqlRaw(@"
-            ALTER TABLE ""Products"" ADD COLUMN IF NOT EXISTS ""TrackStock"" boolean NOT NULL DEFAULT true;
-        ");
+        var columnMigrations = new[]
+        {
+            @"ALTER TABLE ""Products"" ADD COLUMN IF NOT EXISTS ""TrackStock"" boolean NOT NULL DEFAULT true;",
+            @"ALTER TABLE ""Products"" ADD COLUMN IF NOT EXISTS ""SaleType"" text NOT NULL DEFAULT 'UNIT';",
+            @"ALTER TABLE ""Products"" ADD COLUMN IF NOT EXISTS ""DiscountPercentage"" numeric NOT NULL DEFAULT 0;",
+            @"ALTER TABLE ""Products"" ADD COLUMN IF NOT EXISTS ""IsPriority"" boolean NOT NULL DEFAULT false;",
+            @"ALTER TABLE ""Products"" ADD COLUMN IF NOT EXISTS ""IdealStock"" numeric NOT NULL DEFAULT 0;",
+            @"ALTER TABLE ""Products"" ADD COLUMN IF NOT EXISTS ""WholesalePrice"" numeric NOT NULL DEFAULT 0;",
+            @"ALTER TABLE ""Products"" ADD COLUMN IF NOT EXISTS ""WholesaleMinQty"" numeric NOT NULL DEFAULT 0;",
+            @"ALTER TABLE ""Products"" ADD COLUMN IF NOT EXISTS ""Status"" text NOT NULL DEFAULT 'ACTIVE';",
+            @"ALTER TABLE ""Products"" ADD COLUMN IF NOT EXISTS ""Cost"" numeric NOT NULL DEFAULT 0;",
+            @"ALTER TABLE ""Products"" ADD COLUMN IF NOT EXISTS ""InternalCode"" text NOT NULL DEFAULT '';",
+        };
+        foreach (var sql in columnMigrations)
+        {
+            try { db.Database.ExecuteSqlRaw(sql); }
+            catch (Exception colEx) { Console.WriteLine($"Column migration skipped: {colEx.Message}"); }
+        }
 
         // Seed initial data only when the database is empty (first deploy)
         if (!db.Users.Any())
