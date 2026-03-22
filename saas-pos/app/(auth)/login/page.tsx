@@ -256,9 +256,15 @@ export default function LoginPage() {
                     </form>
 
                     {/* Footer note */}
-                    <p className="text-center text-slate-600 text-xs font-bold uppercase tracking-widest">
-                        Acceso restringido &bull; Solo personal autorizado
-                    </p>
+                    <a
+                        href="https://wa.me/595976917543?text=Quisiera%20poder%20probar%20el%20sistema%20de%20NexPOS"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 text-slate-500 hover:text-green-400 transition-colors text-xs font-bold uppercase tracking-widest"
+                    >
+                        <span className="material-symbols-outlined text-sm">chat</span>
+                        Quiero probar el sistema
+                    </a>
                 </div>
             </div>
         </div>

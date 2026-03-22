@@ -276,7 +276,7 @@ export default function POSClient() {
     const total = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0)
 
     return (
-        <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100">
+        <div className="flex flex-col h-full overflow-hidden bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100">
             {!cashOpen && (
                 <div className="absolute inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-2xl text-center max-w-sm w-full">
