@@ -23,6 +23,11 @@
   }
 }
 
+html {
+  /* Escala fluida: 14px en móvil → 16px en desktop */
+  font-size: clamp(14px, 1.5vw, 16px);
+}
+
 body {
   background: var(--color-background-light);
   color: var(--foreground);
@@ -50,3 +55,7 @@ body {
   -webkit-font-smoothing: antialiased;
   font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
+
+/* Hide scrollbar but keep scroll functionality */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

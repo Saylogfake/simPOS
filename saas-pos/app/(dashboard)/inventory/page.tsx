@@ -112,22 +112,22 @@ function InventoryContent() {
     }
 
     return (
-        <div className="flex flex-col min-h-screen bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 p-8 pt-4">
-            <header className="flex flex-col gap-2 mb-8">
-                <h1 className="text-3xl font-black tracking-tight">Gestión de Inventario</h1>
+        <div className="flex flex-col min-h-screen bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 p-4 md:p-8 pt-4">
+            <header className="flex flex-col gap-2 mb-6">
+                <h1 className="text-2xl md:text-3xl font-black tracking-tight">Gestión de Inventario</h1>
                 <p className="text-slate-500 dark:text-slate-400">Control total sobre existencias, precios y categorías.</p>
             </header>
 
             {/* Tabs Navigation */}
-            <div className="flex gap-8 border-b border-slate-200 dark:border-slate-800 mb-6">
+            <div className="flex gap-4 md:gap-8 border-b border-slate-200 dark:border-slate-800 mb-6 overflow-x-auto no-scrollbar">
                 {["stock", "add", "offers", "categories", "missing", "kardex"].map(tab => (
                     <button
                         key={tab}
                         onClick={() => handleTabChange(tab)}
-                        className={`pb-3 pt-2 text-sm font-bold tracking-wide transition-all border-b-2 ${activeTab === tab ? "border-primary text-primary" : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-200"}`}
+                        className={`pb-3 pt-2 text-xs md:text-sm font-bold tracking-wide transition-all border-b-2 whitespace-nowrap ${activeTab === tab ? "border-primary text-primary" : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-200"}`}
                     >
                         {tab === "stock" && "Stock"}
-                        {tab === "add" && "Agregar Producto"}
+                        {tab === "add" && "Agregar"}
                         {tab === "offers" && "Ofertas"}
                         {tab === "categories" && "Categorías"}
                         {tab === "missing" && "Faltantes"}
@@ -145,8 +145,8 @@ function InventoryContent() {
                     {activeTab === "stock" || activeTab === "offers" || activeTab === "missing" ? (
                         <>
                             {/* Toolbar */}
-                            <div className="flex flex-wrap items-center justify-between gap-4">
-                                <div className="relative flex-1 min-w-[300px] h-12 shadow-sm">
+                            <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center justify-between gap-3">
+                                <div className="relative flex-1 min-w-0 h-12 shadow-sm">
                                     <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">search</span>
                                     <input 
                                         className="w-full h-full pl-12 pr-4 bg-white dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-primary text-base"
@@ -156,13 +156,13 @@ function InventoryContent() {
                                     />
                                 </div>
                                 <div className="flex gap-2">
-                                    <button className="flex items-center gap-2 px-6 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50">
+                                    <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50">
                                         <span className="material-symbols-outlined text-lg">filter_list</span>
-                                        Filtros
+                                        <span className="hidden sm:inline">Filtros</span>
                                     </button>
-                                    <button className="flex items-center gap-2 px-6 py-2 bg-primary text-white rounded-xl text-sm font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all">
+                                    <button className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all">
                                         <span className="material-symbols-outlined text-lg">download</span>
-                                        Exportar
+                                        <span className="hidden sm:inline">Exportar</span>
                                     </button>
                                 </div>
                             </div>
@@ -221,7 +221,7 @@ function InventoryContent() {
                                                                 <span className="material-symbols-outlined text-lg" style={{fontVariationSettings: product.isPriority ? "'FILL' 1" : "'FILL' 0"}}>star</span>
                                                             </button>
                                                             <button onClick={() => setRestockProduct(product)} className="p-2 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-colors">
-                                                                <span className="material-symbols-outlined text-lg">retry</span>
+                                                                <span className="material-symbols-outlined text-lg">add_circle</span>
                                                             </button>
                                                             <button onClick={() => setDiscountProduct(product)} className="p-2 text-slate-400 hover:text-purple-500 hover:bg-purple-50 rounded-lg transition-colors">
                                                                 <span className="material-symbols-outlined text-lg">loyalty</span>
@@ -245,7 +245,7 @@ function InventoryContent() {
                             </div>
 
                             {/* Stats Summary */}
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
                                 <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-4 shadow-sm">
                                     <div className="size-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
                                         <span className="material-symbols-outlined">inventory_2</span>

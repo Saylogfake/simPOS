@@ -2,8 +2,6 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { API_URL } from "@/lib/api"
 
 export default function LoginPage() {
@@ -12,9 +10,39 @@ export default function LoginPage() {
     const [password, setPassword] = useState("")
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState("")
+    const [showPassword, setShowPassword] = useState(false)
+    const [showForgotInfo, setShowForgotInfo] = useState(false)
+    const [emailError, setEmailError] = useState("")
+    const [passwordError, setPasswordError] = useState("")
+
+    const validateFields = () => {
+        let valid = true
+        setEmailError("")
+        setPasswordError("")
+
+        if (!email.trim()) {
+            setEmailError("El correo es obligatorio")
+            valid = false
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            setEmailError("Ingresa un correo válido")
+            valid = false
+        }
+
+        if (!password.trim()) {
+            setPasswordError("La contraseña es obligatoria")
+            valid = false
+        } else if (password.length < 4) {
+            setPasswordError("Mínimo 4 caracteres")
+            valid = false
+        }
+
+        return valid
+    }
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
+        if (!validateFields()) return
+
         setLoading(true)
         setError("")
 
@@ -25,113 +53,218 @@ export default function LoginPage() {
                 body: JSON.stringify({ email, password }),
             })
 
-            if (!res.ok) {
-                throw new Error("Invalid credentials")
-            }
+            if (!res.ok) throw new Error("Credenciales incorrectas")
 
             const data = await res.json()
             localStorage.setItem("token", data.access_token)
             localStorage.setItem("user", JSON.stringify(data.user))
-            router.push("/pos")
-        } catch (err) {
-            setError("Failed to login. Please check your credentials.")
+            const role = data.user?.role || ""
+            if (role === "CAJERO") router.push("/cash")
+            else router.push("/cash/admin")
+        } catch {
+            setError("Credenciales incorrectas. Verifica tu correo y contraseña.")
         } finally {
             setLoading(false)
         }
     }
 
     return (
-        <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex items-center justify-center w-full">
-            <div className="flex h-screen w-full overflow-hidden">
-                {/* Left Side: Login Form */}
-                <div className="flex flex-col w-full lg:w-[450px] xl:w-[550px] bg-background-light dark:bg-background-dark p-8 md:p-12 lg:p-16 justify-center">
-                    <div className="mb-10 flex items-center gap-3">
-                        <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-white">
-                            <span className="material-symbols-outlined text-2xl">point_of_sale</span>
-                        </div>
-                        <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
-                            SaaS <span className="text-primary">POS</span>
-                        </h1>
+        <div className="min-h-screen w-full flex bg-slate-950 font-display">
+            {/* Left panel — branding */}
+            <div className="hidden lg:flex flex-col justify-between w-[45%] bg-slate-900 border-r border-slate-800 p-12 relative overflow-hidden">
+                {/* Background decoration */}
+                <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                    <div className="absolute -top-32 -left-32 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
+                    <div className="absolute bottom-0 right-0 w-80 h-80 bg-primary/5 rounded-full blur-3xl" />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] border border-slate-800 rounded-full opacity-30" />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] border border-slate-800 rounded-full opacity-20" />
+                </div>
+
+                {/* Logo */}
+                <div className="relative z-10 flex items-center gap-3">
+                    <div className="size-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/30">
+                        <span className="material-symbols-outlined text-white text-xl">point_of_sale</span>
                     </div>
-                    <div className="mb-8">
-                        <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Welcome back</h2>
-                        <p className="text-slate-500 dark:text-slate-400">Manage your retail business with ease. Log in to access your dashboard.</p>
-                    </div>
-                    <form onSubmit={handleLogin} className="space-y-6">
-                        {/* Email Field */}
-                        <div className="flex flex-col gap-2">
-                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Email Address</label>
-                            <div className="relative">
-                                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">mail</span>
-                                <input 
-                                    className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none text-slate-900 dark:text-white" 
-                                    placeholder="name@company.com" 
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    required
-                                />
-                            </div>
+                    <span className="text-white font-black text-xl tracking-tight">SaaS<span className="text-primary">POS</span></span>
+                </div>
+
+                {/* Center content */}
+                <div className="relative z-10 space-y-8">
+                    <div className="space-y-4">
+                        <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 px-4 py-2 rounded-full">
+                            <span className="size-2 bg-primary rounded-full animate-pulse" />
+                            <span className="text-primary text-[10px] font-black uppercase tracking-widest">Sistema Activo</span>
                         </div>
-                        {/* Password Field */}
-                        <div className="flex flex-col gap-2">
-                            <div className="flex justify-between items-center">
-                                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Password</label>
-                                <a className="text-sm font-semibold text-primary hover:underline" href="#">Forgot password?</a>
-                            </div>
-                            <div className="relative">
-                                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">lock</span>
-                                <input 
-                                    className="w-full pl-12 pr-12 py-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none text-slate-900 dark:text-white" 
-                                    placeholder="Enter your password" 
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    required
-                                />
-                            </div>
-                        </div>
-                        {error && <p className="text-red-500 text-sm">{error}</p>}
-                        {/* Action Button */}
-                        <button 
-                            className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-lg shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2" 
-                            type="submit"
-                            disabled={loading}
-                        >
-                            <span>{loading ? "Signing in..." : "Sign In to Dashboard"}</span>
-                            <span className="material-symbols-outlined text-xl">arrow_forward</span>
-                        </button>
-                    </form>
-                    {/* Secondary Action */}
-                    <div className="mt-10 pt-8 border-t border-slate-200 dark:border-slate-800 text-center">
-                        <p className="text-sm text-slate-600 dark:text-slate-400">
-                            Don&apos;t have an account yet? 
-                            <a className="text-primary font-bold hover:underline" href="#"> Start free trial</a>
+                        <h2 className="text-4xl font-black text-white leading-tight italic tracking-tighter">
+                            Control total<br />de tu negocio<br /><span className="text-primary">en un solo lugar.</span>
+                        </h2>
+                        <p className="text-slate-400 text-sm leading-relaxed max-w-xs">
+                            Gestiona ventas, inventario, caja y clientes desde un terminal unificado.
                         </p>
                     </div>
-                </div>
-                {/* Right Side: Hero Image / Visual */}
-                <div className="hidden lg:block relative flex-1">
-                    <div className="absolute inset-0 bg-primary/10 mix-blend-multiply z-10"></div>
-                    <div className="absolute inset-0 bg-gradient-to-t from-background-dark/80 via-transparent to-transparent z-20"></div>
-                    <img 
-                        alt="Retail Environment" 
-                        className="absolute inset-0 w-full h-full object-cover" 
-                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuD7c7ym33IDIWJLum9W4wFLt8n9jxqLE4D72oAMoInlmu4iUOogPU5pSSWf4l3KnWHzD9TD6-fuCHMS9ZJwh4rRR9Ty-4W34USdKUhM4_E2WFw8J3blfgMwHALtutGYxCy3__IZdcoW968azz5Q-UwFTNV6V8MdTwq90lbhb3iLp12gg7Xqe-bsx1ZaHWY914rKlEP3mf3skG6JiLxs7fueeLngs_z_Yap_G4W9JNY6m498HGZBRTHyhc4MHQCE0sO8K0W3NTS3R_A"
-                    />
-                    {/* Floating Card over Image */}
-                    <div className="absolute bottom-16 left-16 right-16 z-30 bg-white/10 backdrop-blur-md border border-white/20 p-8 rounded-xl">
-                        <div className="flex items-center gap-4 mb-4">
-                            <div className="flex -space-x-2">
-                                <img alt="User" className="w-10 h-10 rounded-full border-2 border-white/20" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB4kqUJKMdfdlTa4VbPa6RVHh9sqzUZOAt9y6f8QDuEvoYexmq3d7v5qASdg_UnMHF9HvjdhDU3lKY54SE4pPAXrnyf_t2H9CFBbCUlyerqHbPt-JyG-_z3H1wjLGSontmYgioO04MT2K8Lo79C2kfhMb1NT0CdpercvwBcOnrwtJlkvB2uL39dvqNELPLWdnSQylAvrLnzCjmnCfB9B3oJbvsoFblohu_v2Gcyo6IeWRj7aTE7jGov5QAsNAc-fGMIf4VJc66-gnk"/>
-                                <img alt="User" className="w-10 h-10 rounded-full border-2 border-white/20" src="https://lh3.googleusercontent.com/aida-public/AB6AXuButgfE3FyiOmr0OGYJxZN0WLtHgX_L03Gc0IYv82HEZzrmmZZIqN8FEunXUVQmZ8CexOVoswGFLARQ0_zZUB-n6MlIzxP3Jqi70avXQyJuNqX2haFFDSWACHPYtB3W6xWKOxmBmPyYUvOjYWdVL0dC0xvq7Y__3Cx1eW7-PjFDomx_YkHp_ByC8fQCpA_gKYnlWGzFjhbl0ETbf3C86kWYJuH9IQ3LLtbm5Ox9Mn22NH2XSDWVB4PTxJ15fgwVjkgFGMqjiJrP_wA"/>
-                                <img alt="User" className="w-10 h-10 rounded-full border-2 border-white/20" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDtMqBGf4qOerwhR1gzRsiRWyH0E98N4UFhpyvek9Nlvr6Y7tHi4u2dskq9TWFl4ibrDTljuk5ZClnzyL0gzPgKwBkKmalQkHeXfxenUp5saaieqei-5CD0eaW-6gHcS7gDWBGsoZ1NxKdVxKns-V4b1NUF0YM65gGXnpE8D5LAl7xty1YVSuitrL4WZaOnRfXPw6kl1KXtvgXX4FMMrrA_zh1IvoacAwpZUqXTKfTal5Nnen1O8ecY4in8_Oh7w1GFk8xIf8NvoUQ"/>
+
+                    {/* Stats */}
+                    <div className="grid grid-cols-3 gap-4">
+                        {[
+                            { icon: "point_of_sale", label: "Ventas", value: "POS" },
+                            { icon: "inventory_2", label: "Inventario", value: "Stock" },
+                            { icon: "payments", label: "Caja", value: "Diaria" },
+                        ].map((item) => (
+                            <div key={item.label} className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-4 flex flex-col gap-2">
+                                <span className="material-symbols-outlined text-primary text-xl">{item.icon}</span>
+                                <span className="text-white font-black text-sm italic">{item.value}</span>
+                                <span className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">{item.label}</span>
                             </div>
-                            <p className="text-white text-sm font-medium">Joined by 10,000+ retailers worldwide</p>
-                        </div>
-                        <h3 className="text-2xl font-bold text-white mb-2">&quot;The most intuitive POS system we&apos;ve ever used. Integration was seamless.&quot;</h3>
-                        <p className="text-white/80">— Sarah Jenkins, Boutique Owner</p>
+                        ))}
                     </div>
+                </div>
+
+                {/* Footer */}
+                <div className="relative z-10">
+                    <p className="text-slate-600 text-xs font-bold uppercase tracking-widest">v2.1.0 &bull; Retail Management System</p>
+                </div>
+            </div>
+
+            {/* Right panel — login form */}
+            <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-12 relative">
+                {/* Mobile logo */}
+                <div className="lg:hidden flex items-center gap-3 mb-10">
+                    <div className="size-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/30">
+                        <span className="material-symbols-outlined text-white text-xl">point_of_sale</span>
+                    </div>
+                    <span className="text-white font-black text-xl tracking-tight">SaaS<span className="text-primary">POS</span></span>
+                </div>
+
+                <div className="w-full max-w-sm space-y-8">
+                    {/* Header */}
+                    <div className="space-y-2">
+                        <h1 className="text-3xl font-black text-white italic tracking-tighter">Iniciar Sesión</h1>
+                        <p className="text-slate-500 text-sm">Ingresa tus credenciales para acceder al sistema.</p>
+                    </div>
+
+                    {/* Form */}
+                    <form onSubmit={handleLogin} className="space-y-5" noValidate>
+                        {/* Email */}
+                        <div className="space-y-2">
+                            <label htmlFor="email" className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                Correo Electrónico
+                            </label>
+                            <div className="relative">
+                                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-xl pointer-events-none">
+                                    mail
+                                </span>
+                                <input
+                                    id="email"
+                                    type="email"
+                                    autoComplete="email"
+                                    value={email}
+                                    onChange={(e) => { setEmail(e.target.value); setEmailError("") }}
+                                    placeholder="usuario@empresa.com"
+                                    className={`w-full pl-12 pr-4 py-4 bg-slate-900 border rounded-2xl text-white placeholder-slate-600 text-sm font-medium outline-none transition-all focus:ring-2 focus:ring-primary/50 ${emailError ? "border-rose-500 focus:ring-rose-500/30" : "border-slate-800 focus:border-primary"}`}
+                                />
+                            </div>
+                            {emailError && (
+                                <p className="text-rose-400 text-xs font-bold flex items-center gap-1">
+                                    <span className="material-symbols-outlined text-sm">error</span>
+                                    {emailError}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Password */}
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                                <label htmlFor="password" className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                    Contraseña
+                                </label>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowForgotInfo(!showForgotInfo)}
+                                    className="text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary/80 transition-colors"
+                                >
+                                    ¿Olvidaste tu contraseña?
+                                </button>
+                            </div>
+                            <div className="relative">
+                                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-xl pointer-events-none">
+                                    lock
+                                </span>
+                                <input
+                                    id="password"
+                                    type={showPassword ? "text" : "password"}
+                                    autoComplete="current-password"
+                                    value={password}
+                                    onChange={(e) => { setPassword(e.target.value); setPasswordError("") }}
+                                    placeholder="••••••••"
+                                    className={`w-full pl-12 pr-12 py-4 bg-slate-900 border rounded-2xl text-white placeholder-slate-600 text-sm font-medium outline-none transition-all focus:ring-2 focus:ring-primary/50 ${passwordError ? "border-rose-500 focus:ring-rose-500/30" : "border-slate-800 focus:border-primary"}`}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                                    aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                                >
+                                    <span className="material-symbols-outlined text-xl">
+                                        {showPassword ? "visibility_off" : "visibility"}
+                                    </span>
+                                </button>
+                            </div>
+                            {passwordError && (
+                                <p className="text-rose-400 text-xs font-bold flex items-center gap-1">
+                                    <span className="material-symbols-outlined text-sm">error</span>
+                                    {passwordError}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Forgot password info */}
+                        {showForgotInfo && (
+                            <div className="bg-slate-900 border border-slate-700 rounded-2xl p-4 flex items-start gap-3">
+                                <span className="material-symbols-outlined text-primary text-xl shrink-0 mt-0.5">info</span>
+                                <p className="text-slate-400 text-xs leading-relaxed">
+                                    Contacta al administrador del sistema para restablecer tu contraseña.
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Global error */}
+                        {error && (
+                            <div className="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-4 flex items-center gap-3">
+                                <span className="material-symbols-outlined text-rose-400 text-xl shrink-0">gpp_bad</span>
+                                <p className="text-rose-400 text-sm font-bold">{error}</p>
+                            </div>
+                        )}
+
+                        {/* Submit */}
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full py-4 bg-primary hover:bg-primary/90 disabled:opacity-60 disabled:cursor-not-allowed text-white font-black uppercase tracking-widest italic rounded-2xl shadow-xl shadow-primary/20 transition-all active:scale-[0.98] flex items-center justify-center gap-3 text-sm"
+                        >
+                            {loading ? (
+                                <>
+                                    <span className="material-symbols-outlined animate-spin text-xl">progress_activity</span>
+                                    Verificando...
+                                </>
+                            ) : (
+                                <>
+                                    <span className="material-symbols-outlined text-xl">login</span>
+                                    Ingresar al Sistema
+                                </>
+                            )}
+                        </button>
+                    </form>
+
+                    {/* Footer note */}
+                    <a
+                        href="https://wa.me/595976917543?text=Quisiera%20poder%20probar%20el%20sistema%20de%20NexPOS"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 text-slate-500 hover:text-green-400 transition-colors text-xs font-bold uppercase tracking-widest"
+                    >
+                        <span className="material-symbols-outlined text-sm">chat</span>
+                        Quiero probar el sistema
+                    </a>
                 </div>
             </div>
         </div>

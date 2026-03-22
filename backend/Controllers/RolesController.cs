@@ -21,6 +21,7 @@ namespace SaasPos.Backend.Controllers
         public async Task<IActionResult> GetRoles()
         {
             var roles = await _context.Roles
+                .Where(r => r.Name != "SUPERADMIN")
                 .Select(r => new RoleDto
                 {
                     Id = r.Id,
