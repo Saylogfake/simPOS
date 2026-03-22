@@ -78,6 +78,7 @@ namespace SaasPos.Backend.Models
         public decimal IdealStock { get; set; }
         public decimal WholesalePrice { get; set; }
         public decimal WholesaleMinQty { get; set; }
+        public bool TrackStock { get; set; } = true; // false = venta directa, no descuenta stock
 
         public Category Category { get; set; }
     }

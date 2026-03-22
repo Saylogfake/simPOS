@@ -108,6 +108,11 @@ using (var scope = app.Services.CreateScope())
         db.Database.EnsureCreated();
         Console.WriteLine("Database initialized successfully.");
 
+        // Migrations manuales: agregar columnas nuevas si no existen
+        db.Database.ExecuteSqlRaw(@"
+            ALTER TABLE ""Products"" ADD COLUMN IF NOT EXISTS ""TrackStock"" boolean NOT NULL DEFAULT true;
+        ");
+
         // Seed initial data only when the database is empty (first deploy)
         if (!db.Users.Any())
         {

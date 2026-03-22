@@ -32,6 +32,7 @@ export function AddProductTab({ onSuccess }: AddProductTabProps) {
     const [wholesalePrice, setWholesalePrice] = useState("")
     const [wholesaleMinQty, setWholesaleMinQty] = useState("")
     const [expirationDate, setExpirationDate] = useState("")
+    const [trackStock, setTrackStock] = useState(true)
 
     useEffect(() => {
         fetchCategories()
@@ -74,7 +75,8 @@ export function AddProductTab({ onSuccess }: AddProductTabProps) {
                 imageUrl: imageUrl || "https://placehold.co/100",
                 wholesalePrice: parseFloat(wholesalePrice) || 0,
                 wholesaleMinQty: parseFloat(wholesaleMinQty) || 0,
-                expirationDate: expirationDate ? new Date(expirationDate).toISOString() : null
+                expirationDate: expirationDate ? new Date(expirationDate).toISOString() : null,
+                trackStock
             }
 
             const token = localStorage.getItem("token")
@@ -105,6 +107,7 @@ export function AddProductTab({ onSuccess }: AddProductTabProps) {
             setWholesalePrice("")
             setWholesaleMinQty("")
             setExpirationDate("")
+            setTrackStock(true)
 
             onSuccess()
         } catch (e: any) {
@@ -305,7 +308,33 @@ export function AddProductTab({ onSuccess }: AddProductTabProps) {
                             <h3 className="text-2xl font-black italic tracking-tighter uppercase text-slate-900 dark:text-white">Inventario e Insumos</h3>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        {/* Tipo de control de stock */}
+                        <div className="flex gap-3 mb-8">
+                            <button
+                                type="button"
+                                onClick={() => setTrackStock(true)}
+                                className={`flex-1 flex items-center gap-3 px-6 py-4 rounded-2xl border-4 transition-all ${trackStock ? "border-primary bg-primary/5 text-primary" : "border-slate-100 dark:border-slate-800 text-slate-400 hover:border-slate-300"}`}
+                            >
+                                <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: trackStock ? "'FILL' 1" : "'FILL' 0" }}>inventory_2</span>
+                                <div className="text-left">
+                                    <p className="text-xs font-black uppercase tracking-widest">Por Inventario</p>
+                                    <p className="text-[10px] font-bold opacity-60">Descuenta stock al vender</p>
+                                </div>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setTrackStock(false)}
+                                className={`flex-1 flex items-center gap-3 px-6 py-4 rounded-2xl border-4 transition-all ${!trackStock ? "border-emerald-500 bg-emerald-500/5 text-emerald-600" : "border-slate-100 dark:border-slate-800 text-slate-400 hover:border-slate-300"}`}
+                            >
+                                <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: !trackStock ? "'FILL' 1" : "'FILL' 0" }}>sell</span>
+                                <div className="text-left">
+                                    <p className="text-xs font-black uppercase tracking-widest">Venta Directa</p>
+                                    <p className="text-[10px] font-bold opacity-60">Solo suma ganancia, sin stock</p>
+                                </div>
+                            </button>
+                        </div>
+
+                        <div className={`grid grid-cols-1 md:grid-cols-3 gap-8 transition-opacity ${!trackStock ? "opacity-30 pointer-events-none" : ""}`}>
                             <div className="space-y-4">
                                 <label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 px-2">Stock Inicial</label>
                                 <input
@@ -335,6 +364,7 @@ export function AddProductTab({ onSuccess }: AddProductTabProps) {
                                     className="w-full h-20 bg-slate-50 dark:bg-slate-900 border-4 border-slate-100 dark:border-slate-800 rounded-2xl text-sm font-black uppercase italic tracking-widest text-slate-900 dark:text-white text-center outline-none cursor-pointer"
                                 />
                             </div>
+                        </div>
                         </div>
                     </div>
 

@@ -64,13 +64,14 @@ namespace SaasPos.Backend.Controllers
             var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == request.ProductId && p.TenantId == tenantId);
             if (product == null) return NotFound("Product not found");
 
-            if (product.Stock < request.Quantity)
+            if (product.TrackStock && product.Stock < request.Quantity)
             {
                 return BadRequest($"Insufficient stock. Available: {product.Stock}");
             }
 
-            // Deduct Stock via Service
-            await _inventory.AdjustStockAsync(product.Id, -request.Quantity, "SALE", "Sale Item", sale.UserId, sale.Id.ToString());
+            // Solo descuenta stock si el producto lo requiere
+            if (product.TrackStock)
+                await _inventory.AdjustStockAsync(product.Id, -request.Quantity, "SALE", "Sale Item", sale.UserId, sale.Id.ToString());
 
             var subtotal = product.Price * request.Quantity;
 
@@ -238,7 +239,7 @@ namespace SaasPos.Backend.Controllers
             if (item == null) return NotFound("Item not found in sale");
 
             var product = await _context.Products.FindAsync(item.ProductId);
-            if (product != null)
+            if (product != null && product.TrackStock)
             {
                 // RESTORE STOCK via Service
                 await _inventory.AdjustStockAsync(item.ProductId, item.Quantity, "RETURN", "Item Removed", sale.UserId, sale.Id.ToString());
@@ -329,6 +330,7 @@ namespace SaasPos.Backend.Controllers
             foreach (var item in sale.Items)
             {
                 var product = await _context.Products.FindAsync(item.ProductId);
+                if (product != null && product.TrackStock)
                 {
                     await _inventory.AdjustStockAsync(item.ProductId, item.Quantity, "VOID", "Sale Cancelled", sale.UserId, sale.Id.ToString());
                 }
