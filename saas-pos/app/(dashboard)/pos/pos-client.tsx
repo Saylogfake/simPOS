@@ -32,6 +32,7 @@ type Product = {
     discountPercentage: number
     wholesalePrice?: number
     wholesaleMinQty?: number
+    trackStock: boolean
 }
 
 type Category = {
