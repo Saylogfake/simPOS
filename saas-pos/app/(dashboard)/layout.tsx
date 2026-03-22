@@ -205,14 +205,7 @@ export default function DashboardLayout({
                              pathname === '/roles' ? 'Roles & Access' :
                              pathname === '/superadmin' ? 'Panel Superadmin' : 'Dashboard Overview'}
                         </h2>
-                        <div className="relative hidden md:block">
-                            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
-                            <input 
-                                className="pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-lg text-sm focus:ring-2 focus:ring-primary w-48 lg:w-64 text-slate-700 dark:text-slate-200" 
-                                placeholder="Search..." 
-                                type="text"
-                            />
-                        </div>
+                        
                     </div>
                     <div className="flex items-center gap-4">
                         <button className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full relative">
