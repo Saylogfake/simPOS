@@ -365,7 +365,6 @@ export function AddProductTab({ onSuccess }: AddProductTabProps) {
                                 />
                             </div>
                         </div>
-                        </div>
                     </div>
 
                     <div className="p-10 bg-slate-900 rounded-[40px] text-white flex justify-between items-center shadow-2xl">
