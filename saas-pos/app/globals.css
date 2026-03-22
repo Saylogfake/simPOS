@@ -23,6 +23,11 @@
   }
 }
 
+html {
+  /* Escala fluida: 14px en móvil → 16px en desktop */
+  font-size: clamp(14px, 1.5vw, 16px);
+}
+
 body {
   background: var(--color-background-light);
   color: var(--foreground);
