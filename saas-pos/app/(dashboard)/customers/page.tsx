@@ -82,15 +82,15 @@ export default function CustomersPage() {
     }
 
     return (
-        <div className="flex flex-col min-h-screen bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 p-8 pt-4">
-            <header className="flex flex-col gap-2 mb-8">
-                <h1 className="text-3xl font-black tracking-tight">Gestión de Clientes</h1>
+        <div className="flex flex-col min-h-screen bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 p-4 md:p-8 pt-4">
+            <header className="flex flex-col gap-2 mb-6">
+                <h1 className="text-2xl md:text-3xl font-black tracking-tight">Gestión de Clientes</h1>
                 <p className="text-slate-500 dark:text-slate-400">Administra tu base de datos de clientes, saldos y cuentas corrientes.</p>
             </header>
 
             {/* Toolbar */}
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-                <div className="relative flex-1 min-w-[300px] h-12 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center justify-between gap-3 mb-6">
+                <div className="relative flex-1 min-w-0 h-12 shadow-sm">
                     <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">search</span>
                     <input 
                         className="w-full h-full pl-12 pr-4 bg-white dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-primary text-base"

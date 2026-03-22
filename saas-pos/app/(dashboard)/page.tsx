@@ -26,7 +26,7 @@ export default function DashboardOverview() {
     ]
 
     return (
-        <div className="p-8 space-y-8 max-w-7xl mx-auto w-full bg-background-light dark:bg-background-dark min-h-screen font-display text-slate-900 dark:text-slate-100">
+        <div className="p-4 md:p-8 space-y-6 md:space-y-8 max-w-7xl mx-auto w-full bg-background-light dark:bg-background-dark min-h-screen font-display text-slate-900 dark:text-slate-100">
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all group">

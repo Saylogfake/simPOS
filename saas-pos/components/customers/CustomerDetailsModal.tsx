@@ -123,7 +123,7 @@ export function CustomerDetailsModal({ customer, isOpen, onClose, onUpdate }: Cu
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-6xl p-0 border-none bg-transparent overflow-hidden rounded-[40px]">
+            <DialogContent className="max-w-full sm:max-w-2xl lg:max-w-6xl p-0 border-none bg-transparent overflow-hidden rounded-none sm:rounded-[40px]">
                 <div className="bg-white dark:bg-slate-950 flex flex-col max-h-[90vh]">
                     <div className="p-10 pb-6 flex justify-between items-start bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
                         <div className="flex flex-col gap-2">
@@ -147,9 +147,9 @@ export function CustomerDetailsModal({ customer, isOpen, onClose, onUpdate }: Cu
                         </div>
                     </div>
 
-                    <div className="flex-1 overflow-hidden flex">
+                    <div className="flex-1 overflow-hidden flex flex-col sm:flex-row">
                         {/* Sidebar Info */}
-                        <div className="w-80 border-r border-slate-100 dark:border-slate-800 p-8 space-y-8 bg-slate-50/30 dark:bg-slate-900/20">
+                        <div className="w-full sm:w-72 lg:w-80 border-b sm:border-b-0 sm:border-r border-slate-100 dark:border-slate-800 p-6 sm:p-8 space-y-6 sm:space-y-8 bg-slate-50/30 dark:bg-slate-900/20 overflow-y-auto">
                             <div className="space-y-6">
                                 <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 px-2 flex items-center gap-2">
                                     <span className="material-symbols-outlined text-xs">contact_mail</span>

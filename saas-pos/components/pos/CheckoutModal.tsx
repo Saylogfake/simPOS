@@ -162,7 +162,7 @@ export default function CheckoutModal({
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-5xl h-[90vh] p-0 border-none bg-background-light dark:bg-background-dark font-display overflow-hidden rounded-3xl">
+            <DialogContent className="max-w-full sm:max-w-2xl lg:max-w-5xl h-[95vh] sm:h-[90vh] p-0 border-none bg-background-light dark:bg-background-dark font-display overflow-hidden rounded-none sm:rounded-3xl">
                 <div className="flex flex-col h-full bg-slate-950 text-white">
                     {/* High-Impact Header */}
                     <div className="px-10 py-10 bg-gradient-to-br from-slate-900 to-slate-950 border-b border-slate-800 flex justify-between items-end relative overflow-hidden">
@@ -191,9 +191,9 @@ export default function CheckoutModal({
                         </div>
                     </div>
 
-                    <div className="flex-1 flex overflow-hidden bg-white dark:bg-slate-900">
+                    <div className="flex-1 flex flex-col sm:flex-row overflow-hidden bg-white dark:bg-slate-900">
                         {/* Sidebar: Payment Methods */}
-                        <div className="w-80 bg-slate-50 dark:bg-slate-950/50 border-r border-slate-200 dark:border-slate-800 p-6 flex flex-col gap-4">
+                        <div className="w-full sm:w-64 lg:w-80 bg-slate-50 dark:bg-slate-950/50 border-b sm:border-b-0 sm:border-r border-slate-200 dark:border-slate-800 p-4 sm:p-6 flex flex-row sm:flex-col gap-3 sm:gap-4 overflow-x-auto sm:overflow-x-visible">
                             <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 px-2">Método de Pago</h3>
                             
                             <button

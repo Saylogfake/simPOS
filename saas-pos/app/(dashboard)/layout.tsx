@@ -12,6 +12,7 @@ export default function DashboardLayout({
     const router = useRouter()
     const pathname = usePathname()
     const [isInventoryOpen, setIsInventoryOpen] = useState(true)
+    const [sidebarOpen, setSidebarOpen] = useState(false)
 
     const handleLogout = () => {
         localStorage.removeItem("user")
@@ -57,8 +58,15 @@ export default function DashboardLayout({
 
     return (
         <div className="flex h-screen overflow-hidden bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100">
+            {/* Mobile overlay */}
+            {sidebarOpen && (
+                <div 
+                    className="fixed inset-0 bg-black/50 z-20 lg:hidden"
+                    onClick={() => setSidebarOpen(false)}
+                />
+            )}
             {/* Sidebar Navigation */}
-            <aside className="w-64 flex-shrink-0 bg-slate-900 border-r border-slate-800 flex flex-col">
+            <aside className={`fixed lg:static inset-y-0 left-0 z-30 w-64 flex-shrink-0 bg-slate-900 border-r border-slate-800 flex flex-col transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
                 <div className="p-6">
                     <div className="flex items-center gap-3">
                         <div className="bg-primary rounded-lg p-2 flex items-center justify-center">
@@ -168,21 +176,27 @@ export default function DashboardLayout({
             </aside>
 
             {/* Main Content Area */}
-            <main className="flex-1 flex flex-col overflow-y-auto">
+            <main className="flex-1 flex flex-col overflow-y-auto min-w-0">
                 {/* Header */}
-                <header className="flex items-center justify-between px-8 py-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 sticky top-0 z-10">
-                    <div className="flex items-center gap-6">
-                        <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+                <header className="flex items-center justify-between px-4 md:px-8 py-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 sticky top-0 z-10">
+                    <div className="flex items-center gap-3 md:gap-6">
+                        <button 
+                            className="lg:hidden p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
+                            onClick={() => setSidebarOpen(true)}
+                        >
+                            <span className="material-symbols-outlined">menu</span>
+                        </button>
+                        <h2 className="text-base md:text-xl font-bold text-slate-900 dark:text-slate-100 truncate">
                             {pathname === '/pos' ? 'POS Terminal' : 
                              pathname === '/inventory' ? 'Inventory Management' :
                              pathname === '/cash' ? 'Cash Management' : 
                              pathname === '/roles' ? 'Roles & Access' :
                              pathname === '/superadmin' ? 'Panel Superadmin' : 'Dashboard Overview'}
                         </h2>
-                        <div className="relative">
+                        <div className="relative hidden md:block">
                             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
                             <input 
-                                className="pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-lg text-sm focus:ring-2 focus:ring-primary w-64 text-slate-700 dark:text-slate-200" 
+                                className="pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-lg text-sm focus:ring-2 focus:ring-primary w-48 lg:w-64 text-slate-700 dark:text-slate-200" 
                                 placeholder="Search..." 
                                 type="text"
                             />

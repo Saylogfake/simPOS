@@ -75,6 +75,7 @@ export default function POSClient() {
     const [registerId, setRegisterId] = useState<string>("")
     const [cashOpen, setCashOpen] = useState<boolean>(false)
     const [showCashModal, setShowCashModal] = useState(false)
+    const [mobileView, setMobileView] = useState<'products' | 'cart'>('products')
 
     useEffect(() => {
         const checkStatus = async () => {
@@ -203,7 +204,6 @@ export default function POSClient() {
             manualInputRef.current?.focus()
         }
     }
-
     const initiateAddToCart = (product: Product) => {
         let quantity = pendingMultiplier
         if (manualInput.startsWith("*")) {
@@ -293,8 +293,26 @@ export default function POSClient() {
                 </div>
             )}
 
+            {/* Mobile tab switcher */}
+            <div className="flex md:hidden border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
+                <button
+                    onClick={() => setMobileView('products')}
+                    className={`flex-1 py-3 text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-colors ${mobileView === 'products' ? 'text-primary border-b-2 border-primary' : 'text-slate-400'}`}
+                >
+                    <span className="material-symbols-outlined text-sm">grid_view</span>
+                    Productos
+                </button>
+                <button
+                    onClick={() => setMobileView('cart')}
+                    className={`flex-1 py-3 text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-colors ${mobileView === 'cart' ? 'text-primary border-b-2 border-primary' : 'text-slate-400'}`}
+                >
+                    <span className="material-symbols-outlined text-sm">shopping_basket</span>
+                    Ticket {cart.length > 0 && <span className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px]">{cart.length}</span>}
+                </button>
+            </div>
+
             <main className="flex flex-1 overflow-hidden">
-                <section className="flex flex-col w-[65%] border-r border-slate-200 dark:border-slate-800">
+                <section className={`flex flex-col w-full md:w-[65%] border-r border-slate-200 dark:border-slate-800 ${mobileView === 'cart' ? 'hidden md:flex' : 'flex'}`}>
                     <div className="p-4 bg-white dark:bg-slate-900 space-y-4 shadow-sm z-10">
                         <div className="relative group">
                             <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">search</span>
@@ -372,7 +390,7 @@ export default function POSClient() {
                     </div>
                 </section>
 
-                <aside className="w-[35%] bg-white dark:bg-slate-900 shadow-2xl flex flex-col border-l border-slate-200 dark:border-slate-800">
+                <aside className={`w-full md:w-[35%] bg-white dark:bg-slate-900 shadow-2xl flex flex-col border-l border-slate-200 dark:border-slate-800 ${mobileView === 'products' ? 'hidden md:flex' : 'flex'}`}>
                     <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/30">
                         <div className="flex flex-col relative">
                             <h2 className="text-lg font-black flex items-center gap-2">
@@ -492,8 +510,8 @@ export default function POSClient() {
                 </aside>
             </main>
 
-            <footer className="h-14 bg-slate-900 text-white flex items-center px-6 justify-between shrink-0 border-t border-slate-800 shadow-2xl z-20">
-                <div className="flex items-center gap-8">
+            <footer className="bg-slate-900 text-white flex items-center px-3 md:px-6 justify-between shrink-0 border-t border-slate-800 shadow-2xl z-20 overflow-x-auto h-14">
+                <div className="flex items-center gap-4 md:gap-8 min-w-max">
                     <div className="flex items-center gap-2 group cursor-pointer" onClick={() => setReturnModalOpen(true)}>
                         <kbd className="px-2 py-0.5 rounded bg-slate-800 text-[10px] font-black text-slate-400 group-hover:bg-primary group-hover:text-white transition-all">F9</kbd>
                         <span className="text-[10px] text-slate-500 font-black uppercase group-hover:text-slate-300 transition-colors">Devoluciones</span>
