@@ -79,7 +79,8 @@ namespace SaasPos.Backend.Controllers
                 IdealStock = dto.MinStock * 2, // Default logic or 0
                 WholesalePrice = dto.WholesalePrice,
                 WholesaleMinQty = dto.WholesaleMinQty,
-                ExpirationDate = dto.ExpirationDate
+                ExpirationDate = dto.ExpirationDate,
+                TrackStock = dto.TrackStock
             };
 
             _context.Products.Add(product);
@@ -111,6 +112,7 @@ namespace SaasPos.Backend.Controllers
             product.WholesalePrice = dto.WholesalePrice;
             product.WholesaleMinQty = dto.WholesaleMinQty;
             product.ExpirationDate = dto.ExpirationDate;
+            product.TrackStock = dto.TrackStock;
             // Stock IS NOT modified directly here for logging purposes.
             // Check diff
             var diff = dto.Stock - product.Stock;
@@ -276,6 +278,7 @@ namespace SaasPos.Backend.Controllers
         public decimal WholesalePrice { get; set; }
         public decimal WholesaleMinQty { get; set; }
         public DateTime? ExpirationDate { get; set; }
+        public bool TrackStock { get; set; } = true;
     }
 
     public class StockUpdateDto
