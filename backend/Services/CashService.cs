@@ -165,6 +165,63 @@ namespace SaasPos.Backend.Services
                 .Take(50)
                 .ToListAsync();
         }
+
+        public async Task<CashAnalyticsDto> GetAnalyticsAsync(Guid tenantId)
+        {
+            // ── Ventas de la semana actual (lunes a domingo) ──────────────────
+            var today = DateTime.UtcNow.Date;
+            var dayOfWeek = (int)today.DayOfWeek; // 0=Sun
+            var monday = today.AddDays(dayOfWeek == 0 ? -6 : -(dayOfWeek - 1));
+            var sunday = monday.AddDays(7);
+
+            var weekMovements = await _context.CashMovements
+                .Where(m => m.CreatedAt >= monday && m.CreatedAt < sunday)
+                .Join(_context.CashRegisters, m => m.CashRegisterId, r => r.Id, (m, r) => new { m, r })
+                .Where(x => x.r.TenantId == tenantId)
+                .Select(x => new { x.m.Type, x.m.Amount, x.m.CreatedAt })
+                .ToListAsync();
+
+            var weekSales = new decimal[7];
+            for (int i = 0; i < 7; i++)
+            {
+                var day = monday.AddDays(i);
+                weekSales[i] = weekMovements
+                    .Where(m => m.Type == "VENTA" && m.CreatedAt.Date == day)
+                    .Sum(m => m.Amount);
+            }
+
+            // ── Ingresos y egresos de la semana ──────────────────────────────
+            var weekIngress = weekMovements.Where(m => m.Type == "INGRESO").Sum(m => m.Amount);
+            var weekEgress  = weekMovements.Where(m => m.Type == "EGRESO").Sum(m => m.Amount);
+
+            // ── Ganancias globales: ventas totales por mes (todos los registros) ─
+            var allSales = await _context.CashMovements
+                .Where(m => m.Type == "VENTA")
+                .Join(_context.CashRegisters, m => m.CashRegisterId, r => r.Id, (m, r) => new { m, r })
+                .Where(x => x.r.TenantId == tenantId)
+                .Select(x => new { x.m.Amount, x.m.CreatedAt })
+                .ToListAsync();
+
+            // Agrupar por mes, últimos 12 meses
+            var monthlyData = allSales
+                .GroupBy(s => new { s.CreatedAt.Year, s.CreatedAt.Month })
+                .OrderBy(g => g.Key.Year).ThenBy(g => g.Key.Month)
+                .Select(g => new MonthlyTotal
+                {
+                    Label = new DateTime(g.Key.Year, g.Key.Month, 1).ToString("MMM yy"),
+                    Total = g.Sum(s => s.Amount)
+                })
+                .TakeLast(12)
+                .ToList();
+
+            return new CashAnalyticsDto
+            {
+                WeekSales = weekSales,
+                WeekIngress = weekIngress,
+                WeekEgress = weekEgress,
+                MonthlyTotals = monthlyData
+            };
+        }
     }
 
     public class CashMovementRequest
@@ -199,5 +256,19 @@ namespace SaasPos.Backend.Services
         public decimal Card { get; set; }
         public decimal Transfer { get; set; }
         public decimal Qr { get; set; }
+    }
+
+    public class CashAnalyticsDto
+    {
+        public decimal[] WeekSales { get; set; } = new decimal[7]; // Lun-Dom
+        public decimal WeekIngress { get; set; }
+        public decimal WeekEgress { get; set; }
+        public List<MonthlyTotal> MonthlyTotals { get; set; } = new();
+    }
+
+    public class MonthlyTotal
+    {
+        public string Label { get; set; }
+        public decimal Total { get; set; }
     }
 }

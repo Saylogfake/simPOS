@@ -117,6 +117,18 @@ namespace SaasPos.Backend.Controllers
              var history = await _cashService.GetHistoryAsync(tenantId);
              return Ok(history);
         }
+
+        [HttpGet("analytics")]
+        [Authorize(Roles = "ADMIN,SUPERADMIN")]
+        public async Task<IActionResult> GetAnalytics()
+        {
+            var tenantClaim = User.FindFirst("tenant_id")?.Value;
+            if (string.IsNullOrEmpty(tenantClaim) || !Guid.TryParse(tenantClaim, out var tenantId))
+                return Unauthorized();
+
+            var analytics = await _cashService.GetAnalyticsAsync(tenantId);
+            return Ok(analytics);
+        }
     }
 
     public class OpenRegisterRequest {
