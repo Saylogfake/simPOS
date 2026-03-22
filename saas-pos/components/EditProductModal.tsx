@@ -109,22 +109,36 @@ export function EditProductModal({ isOpen, onClose, onSuccess, product }: EditPr
             return
         }
 
+        const parsedPrice = parseFloat(price)
+        const parsedCost = parseFloat(cost) || 0
+        const parsedStock = parseFloat(stock) || 0
+        const parsedMinStock = parseFloat(minStock) || 0
+        const parsedWholesalePrice = parseFloat(wholesalePrice) || 0
+        const parsedWholesaleMinQty = parseFloat(wholesaleMinQty) || 0
+
+        if (parsedPrice <= 0) { toast.error("El precio debe ser mayor a 0"); return }
+        if (parsedCost < 0) { toast.error("El costo no puede ser negativo"); return }
+        if (parsedStock < 0) { toast.error("El stock no puede ser negativo"); return }
+        if (parsedMinStock < 0) { toast.error("El stock mínimo no puede ser negativo"); return }
+        if (parsedWholesalePrice < 0) { toast.error("El precio mayorista no puede ser negativo"); return }
+        if (parsedWholesaleMinQty < 0) { toast.error("La cantidad mínima mayorista no puede ser negativa"); return }
+
         setLoading(true)
         try {
             const payload = {
                 name,
                 internalCode,
                 barcode: barcode || null,
-                price: parseFloat(price),
-                cost: parseFloat(cost) || 0,
-                stock: parseFloat(stock) || 0, // In Edit, we allow full override as per requirement
-                minStock: parseFloat(minStock) || 0,
+                price: parsedPrice,
+                cost: parsedCost,
+                stock: parsedStock,
+                minStock: parsedMinStock,
                 categoryId,
                 saleType,
                 imageUrl,
-                status, // New status field
-                wholesalePrice: parseFloat(wholesalePrice) || 0,
-                wholesaleMinQty: parseFloat(wholesaleMinQty) || 0,
+                status,
+                wholesalePrice: parsedWholesalePrice,
+                wholesaleMinQty: parsedWholesaleMinQty,
                 expirationDate: expirationDate ? new Date(expirationDate).toISOString() : null,
                 trackStock
             }

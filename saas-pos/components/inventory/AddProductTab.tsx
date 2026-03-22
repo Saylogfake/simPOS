@@ -58,6 +58,19 @@ export function AddProductTab({ onSuccess }: AddProductTabProps) {
             toast.error("Por favor complete los campos obligatorios (*)")
             return
         }
+        const parsedPrice = parseFloat(price)
+        const parsedCost = parseFloat(cost) || 0
+        const parsedStock = parseFloat(stock) || 0
+        const parsedMinStock = parseFloat(minStock) || 0
+        const parsedWholesalePrice = parseFloat(wholesalePrice) || 0
+        const parsedWholesaleMinQty = parseFloat(wholesaleMinQty) || 0
+
+        if (parsedPrice <= 0) { toast.error("El precio debe ser mayor a 0"); return }
+        if (parsedCost < 0) { toast.error("El costo no puede ser negativo"); return }
+        if (parsedStock < 0) { toast.error("El stock inicial no puede ser negativo"); return }
+        if (parsedMinStock < 0) { toast.error("El stock mínimo no puede ser negativo"); return }
+        if (parsedWholesalePrice < 0) { toast.error("El precio mayorista no puede ser negativo"); return }
+        if (parsedWholesaleMinQty < 0) { toast.error("La cantidad mínima mayorista no puede ser negativa"); return }
 
         setLoading(true)
         try {
@@ -66,15 +79,15 @@ export function AddProductTab({ onSuccess }: AddProductTabProps) {
                 code: internalCode,
                 internalCode,
                 barcode: barcode || null,
-                price: parseFloat(price),
-                cost: parseFloat(cost) || 0,
-                stock: parseFloat(stock) || 0,
-                minStock: parseFloat(minStock) || 0,
+                price: parsedPrice,
+                cost: parsedCost,
+                stock: parsedStock,
+                minStock: parsedMinStock,
                 categoryId,
                 saleType,
                 imageUrl: imageUrl || "https://placehold.co/100",
-                wholesalePrice: parseFloat(wholesalePrice) || 0,
-                wholesaleMinQty: parseFloat(wholesaleMinQty) || 0,
+                wholesalePrice: parsedWholesalePrice,
+                wholesaleMinQty: parsedWholesaleMinQty,
                 expirationDate: expirationDate ? new Date(expirationDate).toISOString() : null,
                 trackStock
             }
@@ -255,6 +268,7 @@ export function AddProductTab({ onSuccess }: AddProductTabProps) {
                                     <span className="absolute left-8 top-1/2 -translate-y-1/2 text-5xl font-black italic text-slate-200">₲</span>
                                     <input
                                         type="number"
+                                        min="0.01"
                                         value={price}
                                         onChange={e => setPrice(e.target.value)}
                                         className="w-full h-32 bg-slate-50 dark:bg-slate-900 border-4 border-slate-100 dark:border-slate-800 rounded-[32px] text-6xl font-black italic tracking-tighter text-emerald-500 px-16 focus:border-emerald-500 transition-all text-right outline-none"
@@ -268,6 +282,7 @@ export function AddProductTab({ onSuccess }: AddProductTabProps) {
                                     <span className="absolute left-8 top-1/2 -translate-y-1/2 text-5xl font-black italic text-slate-200">₲</span>
                                     <input
                                         type="number"
+                                        min="0"
                                         value={cost}
                                         onChange={e => setCost(e.target.value)}
                                         className="w-full h-32 bg-slate-50 dark:bg-slate-900 border-4 border-slate-100 dark:border-slate-800 rounded-[32px] text-5xl font-black italic tracking-tighter text-slate-400 px-16 focus:border-slate-400 transition-all text-right outline-none"
@@ -282,6 +297,7 @@ export function AddProductTab({ onSuccess }: AddProductTabProps) {
                                 <label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 px-2">Precio Mayorista</label>
                                 <input
                                     type="number"
+                                    min="0"
                                     value={wholesalePrice}
                                     onChange={e => setWholesalePrice(e.target.value)}
                                     className="w-full h-14 bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-xl px-6 text-xl font-black italic text-primary outline-none"
@@ -292,6 +308,7 @@ export function AddProductTab({ onSuccess }: AddProductTabProps) {
                                 <label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 px-2">Cantidad Mín. Mayorista</label>
                                 <input
                                     type="number"
+                                    min="0"
                                     value={wholesaleMinQty}
                                     onChange={e => setWholesaleMinQty(e.target.value)}
                                     className="w-full h-14 bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-xl px-6 text-xl font-black italic text-primary outline-none"
@@ -339,6 +356,7 @@ export function AddProductTab({ onSuccess }: AddProductTabProps) {
                                 <label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 px-2">Stock Inicial</label>
                                 <input
                                     type="number"
+                                    min="0"
                                     value={stock}
                                     onChange={e => setStock(e.target.value)}
                                     className="w-full h-20 bg-slate-50 dark:bg-slate-900 border-4 border-slate-100 dark:border-slate-800 rounded-2xl text-3xl font-black italic text-slate-900 dark:text-white text-center outline-none"
@@ -349,6 +367,7 @@ export function AddProductTab({ onSuccess }: AddProductTabProps) {
                                 <label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 px-2">Stock Mínimo</label>
                                 <input
                                     type="number"
+                                    min="0"
                                     value={minStock}
                                     onChange={e => setMinStock(e.target.value)}
                                     className="w-full h-20 bg-slate-50 dark:bg-slate-900 border-4 border-slate-100 dark:border-slate-800 rounded-2xl text-3xl font-black italic text-rose-500 text-center outline-none"

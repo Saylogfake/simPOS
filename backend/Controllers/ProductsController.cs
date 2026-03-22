@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using SaasPos.Backend.Data;
 using SaasPos.Backend.Models;
 using SaasPos.Backend.Services;
+using System.ComponentModel.DataAnnotations;
 
 namespace SaasPos.Backend.Controllers
 {
@@ -55,6 +56,12 @@ namespace SaasPos.Backend.Controllers
              if (string.IsNullOrEmpty(tenantIdClaim) || !Guid.TryParse(tenantIdClaim, out var tenantId))
                  return Unauthorized(new { message = "Invalid tenant claim" });
 
+             if (!ModelState.IsValid) return BadRequest(ModelState);
+             if (dto.Price <= 0) return BadRequest(new { message = "El precio debe ser mayor a 0" });
+             if (dto.Cost < 0) return BadRequest(new { message = "El costo no puede ser negativo" });
+             if (dto.Stock < 0) return BadRequest(new { message = "El stock no puede ser negativo" });
+             if (dto.MinStock < 0) return BadRequest(new { message = "El stock mínimo no puede ser negativo" });
+
              // Validate unique codes scoped to this tenant
              if (await _context.Products.AnyAsync(p => p.InternalCode == dto.InternalCode && p.IsActive && p.TenantId == tenantId))
                 return BadRequest("Internal Code already exists.");
@@ -96,6 +103,12 @@ namespace SaasPos.Backend.Controllers
             var tenantIdClaim = User.FindFirst("tenant_id")?.Value;
             if (string.IsNullOrEmpty(tenantIdClaim) || !Guid.TryParse(tenantIdClaim, out var tenantId))
                 return Unauthorized();
+
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            if (dto.Price <= 0) return BadRequest(new { message = "El precio debe ser mayor a 0" });
+            if (dto.Cost < 0) return BadRequest(new { message = "El costo no puede ser negativo" });
+            if (dto.Stock < 0) return BadRequest(new { message = "El stock no puede ser negativo" });
+            if (dto.MinStock < 0) return BadRequest(new { message = "El stock mínimo no puede ser negativo" });
 
             var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == id && p.TenantId == tenantId);
             if (product == null) return NotFound();
@@ -263,19 +276,25 @@ namespace SaasPos.Backend.Controllers
 
     public class ProductDto
     {
-        public string Name { get; set; }
-        public string? Code { get; set; } // Legacy/Extra
-        public string InternalCode { get; set; }
+        [Required] public string Name { get; set; }
+        public string? Code { get; set; }
+        [Required] public string InternalCode { get; set; }
         public string? Barcode { get; set; }
+        [Range(0.01, double.MaxValue, ErrorMessage = "El precio debe ser mayor a 0")]
         public decimal Price { get; set; }
+        [Range(0, double.MaxValue, ErrorMessage = "El costo no puede ser negativo")]
         public decimal Cost { get; set; }
+        [Range(0, double.MaxValue, ErrorMessage = "El stock no puede ser negativo")]
         public decimal Stock { get; set; }
+        [Range(0, double.MaxValue, ErrorMessage = "El stock mínimo no puede ser negativo")]
         public decimal MinStock { get; set; }
         public Guid CategoryId { get; set; }
         public string? ImageUrl { get; set; }
-        public string SaleType { get; set; } // UNIT, WEIGHT
-        public string? Status { get; set; } // ACTIVE, INACTIVE, OUT_OF_STOCK
+        public string SaleType { get; set; }
+        public string? Status { get; set; }
+        [Range(0, double.MaxValue, ErrorMessage = "El precio mayorista no puede ser negativo")]
         public decimal WholesalePrice { get; set; }
+        [Range(0, double.MaxValue, ErrorMessage = "La cantidad mínima mayorista no puede ser negativa")]
         public decimal WholesaleMinQty { get; set; }
         public DateTime? ExpirationDate { get; set; }
         public bool TrackStock { get; set; } = true;
@@ -283,6 +302,7 @@ namespace SaasPos.Backend.Controllers
 
     public class StockUpdateDto
     {
+        [Range(0.001, double.MaxValue, ErrorMessage = "La cantidad debe ser mayor a 0")]
         public decimal Quantity { get; set; }
     }
 
