@@ -171,7 +171,7 @@ export default function POSClient() {
 
     const processAddToCart = async (product: Product, quantity: number = 1) => {
         const currentInCart = cart.find(i => i.product.id === product.id)?.quantity || 0
-        if (product.stock < (currentInCart + quantity)) {
+        if (product.trackStock && product.stock < (currentInCart + quantity)) {
             alert(`Stock insuficiente. Disponible: ${product.stock}`)
             return
         }
@@ -357,8 +357,8 @@ export default function POSClient() {
                             return (
                                 <div 
                                     key={product.id}
-                                    onClick={() => product.stock > 0 && initiateAddToCart(product)}
-                                    className={`bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden hover:border-primary transition-all cursor-pointer group shadow-sm flex flex-col h-full ${product.stock <= 0 ? 'opacity-50 grayscale' : ''}`}
+                                    onClick={() => (!product.trackStock || product.stock > 0) && initiateAddToCart(product)}
+                                    className={`bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden hover:border-primary transition-all cursor-pointer group shadow-sm flex flex-col h-full ${product.trackStock && product.stock <= 0 ? 'opacity-50 grayscale' : ''}`}
                                 >
                                     <div className="h-28 bg-slate-100 dark:bg-slate-800 relative">
                                         <div className="absolute inset-0 bg-cover bg-center flex items-center justify-center text-slate-300 font-bold text-lg uppercase bg-no-repeat" style={{ backgroundImage: product.image_url ? `url(${product.image_url})` : 'none' }}>
@@ -380,7 +380,7 @@ export default function POSClient() {
                                         <div className="mt-2 text-right">
                                             <p className="text-primary font-black text-base">{formatMoney(finalPrice)}</p>
                                             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
-                                                Stock: {Number(product.stock).toFixed(product.saleType === "WEIGHT" ? 2 : 0)}
+                                                Stock: {!product.trackStock ? '∞' : Number(product.stock).toFixed(product.saleType === "WEIGHT" ? 2 : 0)}
                                             </p>
                                         </div>
                                     </div>
