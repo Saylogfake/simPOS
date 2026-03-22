@@ -221,7 +221,7 @@ function InventoryContent() {
                                                                 <span className="material-symbols-outlined text-lg" style={{fontVariationSettings: product.isPriority ? "'FILL' 1" : "'FILL' 0"}}>star</span>
                                                             </button>
                                                             <button onClick={() => setRestockProduct(product)} className="p-2 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-colors">
-                                                                <span className="material-symbols-outlined text-lg">retry</span>
+                                                                <span className="material-symbols-outlined text-lg">add_circle</span>
                                                             </button>
                                                             <button onClick={() => setDiscountProduct(product)} className="p-2 text-slate-400 hover:text-purple-500 hover:bg-purple-50 rounded-lg transition-colors">
                                                                 <span className="material-symbols-outlined text-lg">loyalty</span>
