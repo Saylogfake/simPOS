@@ -101,13 +101,13 @@ function InventoryContent() {
                              p.internalCode?.includes(searchTerm)
         if (!matchesSearch) return false
         if (activeTab === "offers") return p.discountPercentage > 0
-        if (activeTab === "missing") return p.stock <= p.minStock
+        if (activeTab === "missing") return p.stock <= p.minStock && p.trackStock
         return true
     })
 
     const stats = {
         total: products.length,
-        lowStock: products.filter(p => p.stock <= p.minStock).length,
+        lowStock: products.filter(p => p.stock <= p.minStock && p.trackStock).length,
         value: products.reduce((acc, p) => acc + (p.price * p.stock), 0),
         discounted: products.filter(p => p.discountPercentage > 0).length
     }
