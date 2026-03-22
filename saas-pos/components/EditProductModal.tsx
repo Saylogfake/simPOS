@@ -26,6 +26,7 @@ type Product = {
     wholesalePrice?: number
     wholesaleMinQty?: number
     expirationDate?: string
+    trackStock?: boolean
 }
 
 type EditProductModalProps = {
@@ -59,6 +60,7 @@ export function EditProductModal({ isOpen, onClose, onSuccess, product }: EditPr
     const [wholesalePrice, setWholesalePrice] = useState("")
     const [wholesaleMinQty, setWholesaleMinQty] = useState("")
     const [expirationDate, setExpirationDate] = useState("")
+    const [trackStock, setTrackStock] = useState(true)
 
     useEffect(() => {
         if (isOpen) {
@@ -82,6 +84,7 @@ export function EditProductModal({ isOpen, onClose, onSuccess, product }: EditPr
             setWholesalePrice(product.wholesalePrice?.toString() || "")
             setWholesaleMinQty(product.wholesaleMinQty?.toString() || "")
             setExpirationDate(product.expirationDate ? product.expirationDate.split('T')[0] : "")
+            setTrackStock(product.trackStock !== false)
         }
     }, [product, isOpen])
 
@@ -122,7 +125,8 @@ export function EditProductModal({ isOpen, onClose, onSuccess, product }: EditPr
                 status, // New status field
                 wholesalePrice: parseFloat(wholesalePrice) || 0,
                 wholesaleMinQty: parseFloat(wholesaleMinQty) || 0,
-                expirationDate: expirationDate ? new Date(expirationDate).toISOString() : null
+                expirationDate: expirationDate ? new Date(expirationDate).toISOString() : null,
+                trackStock
             }
 
             const token = localStorage.getItem("token")
@@ -304,6 +308,32 @@ export function EditProductModal({ isOpen, onClose, onSuccess, product }: EditPr
                                     Control de Stock
                                 </h3>
                                 <div className="space-y-4">
+                                    {/* Tipo de control */}
+                                    <div className="flex gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setTrackStock(true)}
+                                            className={`flex-1 flex items-center gap-2 px-4 py-3 rounded-xl border-2 transition-all ${trackStock ? "border-primary bg-primary/5 text-primary" : "border-slate-200 dark:border-slate-700 text-slate-400 hover:border-slate-300"}`}
+                                        >
+                                            <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: trackStock ? "'FILL' 1" : "'FILL' 0" }}>inventory_2</span>
+                                            <div className="text-left">
+                                                <p className="text-[10px] font-black uppercase tracking-widest">Por Inventario</p>
+                                                <p className="text-[9px] font-bold opacity-60">Descuenta stock</p>
+                                            </div>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setTrackStock(false)}
+                                            className={`flex-1 flex items-center gap-2 px-4 py-3 rounded-xl border-2 transition-all ${!trackStock ? "border-emerald-500 bg-emerald-500/5 text-emerald-600" : "border-slate-200 dark:border-slate-700 text-slate-400 hover:border-slate-300"}`}
+                                        >
+                                            <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: !trackStock ? "'FILL' 1" : "'FILL' 0" }}>sell</span>
+                                            <div className="text-left">
+                                                <p className="text-[10px] font-black uppercase tracking-widest">Venta Directa</p>
+                                                <p className="text-[9px] font-bold opacity-60">Sin stock</p>
+                                            </div>
+                                        </button>
+                                    </div>
+                                    <div className={`space-y-4 transition-opacity ${!trackStock ? "opacity-30 pointer-events-none" : ""}`}>
                                     <div className="space-y-2">
                                         <Label className="text-[10px] font-black uppercase text-slate-400">Stock Actual (Ajuste Manual)</Label>
                                         <div className="relative">
@@ -324,6 +354,7 @@ export function EditProductModal({ isOpen, onClose, onSuccess, product }: EditPr
                                             onChange={e => setMinStock(e.target.value)} 
                                             className="h-12 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-xl font-bold text-rose-500"
                                         />
+                                    </div>
                                     </div>
                                 </div>
                             </div>
