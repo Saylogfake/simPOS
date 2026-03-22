@@ -58,7 +58,9 @@ export default function LoginPage() {
             const data = await res.json()
             localStorage.setItem("token", data.access_token)
             localStorage.setItem("user", JSON.stringify(data.user))
-            router.push("/pos")
+            const role = data.user?.role || ""
+            if (role === "CAJERO") router.push("/cash")
+            else router.push("/cash/admin")
         } catch {
             setError("Credenciales incorrectas. Verifica tu correo y contraseña.")
         } finally {
