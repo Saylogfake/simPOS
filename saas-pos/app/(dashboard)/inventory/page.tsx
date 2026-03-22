@@ -30,6 +30,7 @@ type Product = {
     categoryId: string
     category: { name: string } | null
     isPriority: boolean
+    trackStock: boolean
 }
 
 const formatMoney = (amount: number) => {
@@ -208,11 +209,13 @@ function InventoryContent() {
                                                         <div className="flex items-center gap-2">
                                                             <div className="w-20 h-1.5 rounded-full bg-slate-100 dark:bg-slate-800">
                                                                 <div 
-                                                                    className={`h-full rounded-full ${product.stock <= product.minStock ? 'bg-rose-500' : 'bg-emerald-500'}`} 
-                                                                    style={{ width: `${Math.min(100, (product.stock / (product.minStock * 2)) * 100)}%` }}
+                                                                    className={`h-full rounded-full ${!product.trackStock ? 'bg-sky-400' : product.stock <= product.minStock ? 'bg-rose-500' : 'bg-emerald-500'}`} 
+                                                                    style={{ width: !product.trackStock ? '100%' : `${Math.min(100, (product.stock / (product.minStock * 2)) * 100)}%` }}
                                                                 ></div>
                                                             </div>
-                                                            <span className={`text-xs font-black ${product.stock <= product.minStock ? 'text-rose-600' : 'text-emerald-600'}`}>{product.stock}</span>
+                                                            <span className={`text-xs font-black ${!product.trackStock ? 'text-sky-500' : product.stock <= product.minStock ? 'text-rose-600' : 'text-emerald-600'}`}>
+                                                                {!product.trackStock ? '∞' : product.stock}
+                                                            </span>
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-right">
