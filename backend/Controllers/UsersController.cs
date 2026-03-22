@@ -55,6 +55,7 @@ namespace SaasPos.Backend.Controllers
 
             var role = await _context.Roles.FindAsync(request.RoleId);
             if (role == null) return BadRequest("Role not found");
+            if (role.Name == "SUPERADMIN") return Forbid();
 
             var emailExists = await _context.Users.AnyAsync(u => u.Email == request.Email && u.DeletedAt == null);
             if (emailExists) return Conflict("Email already in use");
@@ -97,6 +98,7 @@ namespace SaasPos.Backend.Controllers
 
             var role = await _context.Roles.FindAsync(request.RoleId);
             if (role == null) return BadRequest("Role not found");
+            if (role.Name == "SUPERADMIN") return Forbid();
 
             // Check email collision (excluding self)
             var emailConflict = await _context.Users.AnyAsync(u => u.Email == request.Email && u.Id != id && u.DeletedAt == null);
