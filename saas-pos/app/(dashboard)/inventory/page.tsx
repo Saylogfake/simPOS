@@ -174,40 +174,40 @@ function InventoryContent() {
                                     <table className="w-full text-left border-collapse">
                                         <thead>
                                             <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
-                                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Producto</th>
-                                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Código</th>
-                                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Categoría</th>
-                                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Precio</th>
-                                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Stock</th>
-                                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Acciones</th>
+                                                <th className="px-3 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Producto</th>
+                                                <th className="px-3 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest hidden md:table-cell">Código</th>
+                                                <th className="px-3 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest hidden sm:table-cell">Categoría</th>
+                                                <th className="px-3 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Precio</th>
+                                                <th className="px-3 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest hidden sm:table-cell">Stock</th>
+                                                <th className="px-3 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Acciones</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                             {filteredProducts.map(product => (
-                                                <tr key={product.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors group">
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="size-10 rounded-lg bg-primary/5 flex items-center justify-center text-primary group-hover:scale-110 transition-transform overflow-hidden">
-                                                                {product.imageUrl ? <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" /> : <span className="material-symbols-outlined">package_2</span>}
+                                                <tr key={product.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
+                                                    <td className="px-3 py-3">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="size-8 shrink-0 rounded-lg bg-primary/5 flex items-center justify-center text-primary overflow-hidden">
+                                                                {product.imageUrl ? <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" /> : <span className="material-symbols-outlined text-base">package_2</span>}
                                                             </div>
-                                                            <div className="font-bold text-slate-900 dark:text-slate-100">{product.name}</div>
+                                                            <span className="font-bold text-slate-900 dark:text-slate-100 text-sm truncate max-w-[120px] sm:max-w-[180px]">{product.name}</span>
                                                         </div>
                                                     </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-slate-400 font-mono text-xs">{product.internalCode || product.barcode || '-'}</td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <span className="px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-black uppercase tracking-tighter">
+                                                    <td className="px-3 py-3 text-slate-400 font-mono text-xs hidden md:table-cell">{product.internalCode || product.barcode || '-'}</td>
+                                                    <td className="px-3 py-3 hidden sm:table-cell">
+                                                        <span className="px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-black uppercase tracking-tighter whitespace-nowrap">
                                                             {product.category?.name || 'Gral'}
                                                         </span>
                                                     </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                    <td className="px-3 py-3 whitespace-nowrap">
                                                         <div className="flex flex-col">
                                                             {product.discountPercentage > 0 && <span className="text-[10px] line-through text-slate-400">{formatMoney(product.price)}</span>}
-                                                            <span className="font-bold text-slate-900 dark:text-white">{formatMoney(product.price * (1 - product.discountPercentage/100))}</span>
+                                                            <span className="font-bold text-slate-900 dark:text-white text-sm">{formatMoney(product.price * (1 - product.discountPercentage/100))}</span>
                                                         </div>
                                                     </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                    <td className="px-3 py-3 hidden sm:table-cell">
                                                         <div className="flex items-center gap-2">
-                                                            <div className="w-20 h-1.5 rounded-full bg-slate-100 dark:bg-slate-800">
+                                                            <div className="w-14 h-1.5 rounded-full bg-slate-100 dark:bg-slate-800">
                                                                 <div 
                                                                     className={`h-full rounded-full ${!product.trackStock ? 'bg-sky-400' : product.stock <= product.minStock ? 'bg-rose-500' : 'bg-emerald-500'}`} 
                                                                     style={{ width: !product.trackStock ? '100%' : `${Math.min(100, (product.stock / (product.minStock * 2)) * 100)}%` }}
@@ -218,25 +218,25 @@ function InventoryContent() {
                                                             </span>
                                                         </div>
                                                     </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                                                        <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <button onClick={() => handleTogglePriority(product)} className={`p-2 rounded-lg transition-colors ${product.isPriority ? 'text-amber-500 bg-amber-50' : 'text-slate-400 hover:text-amber-500 hover:bg-amber-50'}`}>
-                                                                <span className="material-symbols-outlined text-lg" style={{fontVariationSettings: product.isPriority ? "'FILL' 1" : "'FILL' 0"}}>star</span>
+                                                    <td className="px-3 py-3 text-right">
+                                                        <div className="flex justify-end gap-0.5">
+                                                            <button onClick={() => handleTogglePriority(product)} className={`p-1.5 rounded-lg transition-colors ${product.isPriority ? 'text-amber-500 bg-amber-50' : 'text-slate-400 hover:text-amber-500 hover:bg-amber-50'}`}>
+                                                                <span className="material-symbols-outlined text-base" style={{fontVariationSettings: product.isPriority ? "'FILL' 1" : "'FILL' 0"}}>star</span>
                                                             </button>
-                                                            <button onClick={() => setRestockProduct(product)} className="p-2 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-colors">
-                                                                <span className="material-symbols-outlined text-lg">add_circle</span>
+                                                            <button onClick={() => setRestockProduct(product)} className="p-1.5 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-colors">
+                                                                <span className="material-symbols-outlined text-base">add_circle</span>
                                                             </button>
-                                                            <button onClick={() => setDiscountProduct(product)} className="p-2 text-slate-400 hover:text-purple-500 hover:bg-purple-50 rounded-lg transition-colors">
-                                                                <span className="material-symbols-outlined text-lg">loyalty</span>
+                                                            <button onClick={() => setDiscountProduct(product)} className="p-1.5 text-slate-400 hover:text-purple-500 hover:bg-purple-50 rounded-lg transition-colors">
+                                                                <span className="material-symbols-outlined text-base">loyalty</span>
                                                             </button>
-                                                            <button onClick={() => setEditProduct(product)} className="p-2 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-colors">
-                                                                <span className="material-symbols-outlined text-lg">edit</span>
+                                                            <button onClick={() => setEditProduct(product)} className="p-1.5 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-colors">
+                                                                <span className="material-symbols-outlined text-base">edit</span>
                                                             </button>
-                                                            <button onClick={() => setWasteProduct(product)} className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors">
-                                                                <span className="material-symbols-outlined text-lg">warning</span>
+                                                            <button onClick={() => setWasteProduct(product)} className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors">
+                                                                <span className="material-symbols-outlined text-base">warning</span>
                                                             </button>
-                                                            <button onClick={() => setDeleteProduct(product)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                                                                <span className="material-symbols-outlined text-lg">delete</span>
+                                                            <button onClick={() => setDeleteProduct(product)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                                                                <span className="material-symbols-outlined text-base">delete</span>
                                                             </button>
                                                         </div>
                                                     </td>
