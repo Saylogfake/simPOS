@@ -135,10 +135,18 @@ namespace SaasPos.Backend.Controllers
 
     public class CreateCustomerRequest
     {
+        [Required(ErrorMessage = "El nombre es obligatorio")]
+        [MinLength(2, ErrorMessage = "El nombre debe tener al menos 2 caracteres")]
         public string Name { get; set; }
+
+        [Required(ErrorMessage = "La cédula/RUC es obligatoria")]
         public string DocumentId { get; set; }
+
         public string? Phone { get; set; }
+
+        [EmailAddress(ErrorMessage = "El email no es válido")]
         public string? Email { get; set; }
+
         public DateTime? BirthDate { get; set; }
     }
 }

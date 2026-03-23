@@ -26,6 +26,8 @@ export default function CustomersPage() {
     const [detailsOpen, setDetailsOpen] = useState(false)
     const [newCustomerOpen, setNewCustomerOpen] = useState(false)
     const [newCustomer, setNewCustomer] = useState({ name: "", documentId: "", email: "", phone: "", birthDate: "" })
+    const [customerErrors, setCustomerErrors] = useState<{ name?: string; documentId?: string; email?: string }>({})
+    const [savingCustomer, setSavingCustomer] = useState(false)
 
     useEffect(() => {
         fetchCustomers()
@@ -50,16 +52,22 @@ export default function CustomersPage() {
     }
 
     const handleCreateCustomer = async () => {
-        if (!newCustomer.name.trim()) return
-        if (!newCustomer.documentId.trim()) { alert("La cédula/RUC es obligatoria"); return }
+        const errors: { name?: string; documentId?: string; email?: string } = {}
+        if (!newCustomer.name.trim()) errors.name = "El nombre es obligatorio"
+        else if (newCustomer.name.trim().length < 2) errors.name = "Mínimo 2 caracteres"
+        if (!newCustomer.documentId.trim()) errors.documentId = "La cédula/RUC es obligatoria"
+        if (newCustomer.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newCustomer.email)) errors.email = "Email no válido"
+        if (Object.keys(errors).length > 0) { setCustomerErrors(errors); return }
+        setCustomerErrors({})
+        setSavingCustomer(true)
         try {
             const token = localStorage.getItem("token")
             const res = await fetch(`${API_URL}/api/customers`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({
-                    name: newCustomer.name,
-                    documentId: newCustomer.documentId,
+                    name: newCustomer.name.trim(),
+                    documentId: newCustomer.documentId.trim(),
                     phone: newCustomer.phone || null,
                     email: newCustomer.email || null,
                     birthDate: newCustomer.birthDate ? new Date(newCustomer.birthDate).toISOString() : null
@@ -67,13 +75,17 @@ export default function CustomersPage() {
             })
             if (res.ok) {
                 setNewCustomer({ name: "", documentId: "", email: "", phone: "", birthDate: "" })
+                setCustomerErrors({})
                 setNewCustomerOpen(false)
                 fetchCustomers()
             } else {
                 const err = await res.json().catch(() => ({ message: "Error" }))
-                alert(err.message || "Error al crear cliente")
+                if (err.message?.includes("cédula")) setCustomerErrors({ documentId: err.message })
+                else if (err.message?.includes("nombre")) setCustomerErrors({ name: err.message })
+                else alert(err.message || "Error al crear cliente")
             }
         } catch (e) { console.error(e) }
+        finally { setSavingCustomer(false) }
     }
 
     const filteredCustomers = customers.filter(c =>
@@ -233,7 +245,7 @@ export default function CustomersPage() {
                     <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-8">
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-2xl font-black italic tracking-tight uppercase">Nuevo Cliente</h2>
-                            <button onClick={() => setNewCustomerOpen(false)} className="text-slate-400 hover:text-slate-600">
+                            <button onClick={() => { setNewCustomerOpen(false); setCustomerErrors({}) }} className="text-slate-400 hover:text-slate-600">
                                 <span className="material-symbols-outlined">close</span>
                             </button>
                         </div>
@@ -241,25 +253,27 @@ export default function CustomersPage() {
                             <div className="space-y-1">
                                 <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Cédula / RUC <span className="text-rose-500">*</span></label>
                                 <input 
-                                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-primary font-mono"
+                                    className={`w-full p-4 bg-slate-50 dark:bg-slate-800 border rounded-xl focus:ring-2 focus:ring-primary font-mono ${customerErrors.documentId ? 'border-rose-500 focus:ring-rose-500' : 'border-transparent'}`}
                                     placeholder="Ej: 1234567"
                                     value={newCustomer.documentId}
-                                    onChange={e => setNewCustomer({ ...newCustomer, documentId: e.target.value })}
+                                    onChange={e => { setNewCustomer({ ...newCustomer, documentId: e.target.value }); setCustomerErrors(p => ({ ...p, documentId: undefined })) }}
                                 />
+                                {customerErrors.documentId && <p className="text-xs text-rose-500 ml-1">{customerErrors.documentId}</p>}
                             </div>
                             <div className="space-y-1">
                                 <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Nombre Completo <span className="text-rose-500">*</span></label>
                                 <input 
-                                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-primary"
+                                    className={`w-full p-4 bg-slate-50 dark:bg-slate-800 border rounded-xl focus:ring-2 focus:ring-primary ${customerErrors.name ? 'border-rose-500 focus:ring-rose-500' : 'border-transparent'}`}
                                     placeholder="Juan Pérez"
                                     value={newCustomer.name}
-                                    onChange={e => setNewCustomer({ ...newCustomer, name: e.target.value })}
+                                    onChange={e => { setNewCustomer({ ...newCustomer, name: e.target.value }); setCustomerErrors(p => ({ ...p, name: undefined })) }}
                                 />
+                                {customerErrors.name && <p className="text-xs text-rose-500 ml-1">{customerErrors.name}</p>}
                             </div>
                             <div className="space-y-1">
                                 <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Teléfono</label>
                                 <input 
-                                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-primary"
+                                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-transparent rounded-xl focus:ring-2 focus:ring-primary"
                                     placeholder="+595 9xx xxx xxx"
                                     value={newCustomer.phone}
                                     onChange={e => setNewCustomer({ ...newCustomer, phone: e.target.value })}
@@ -268,17 +282,18 @@ export default function CustomersPage() {
                             <div className="space-y-1">
                                 <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Email</label>
                                 <input 
-                                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-primary"
+                                    className={`w-full p-4 bg-slate-50 dark:bg-slate-800 border rounded-xl focus:ring-2 focus:ring-primary ${customerErrors.email ? 'border-rose-500 focus:ring-rose-500' : 'border-transparent'}`}
                                     placeholder="correo@ejemplo.com"
                                     type="email"
                                     value={newCustomer.email}
-                                    onChange={e => setNewCustomer({ ...newCustomer, email: e.target.value })}
+                                    onChange={e => { setNewCustomer({ ...newCustomer, email: e.target.value }); setCustomerErrors(p => ({ ...p, email: undefined })) }}
                                 />
+                                {customerErrors.email && <p className="text-xs text-rose-500 ml-1">{customerErrors.email}</p>}
                             </div>
                             <div className="space-y-1">
                                 <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Fecha de Nacimiento</label>
                                 <input 
-                                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-primary"
+                                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-transparent rounded-xl focus:ring-2 focus:ring-primary"
                                     type="date"
                                     value={newCustomer.birthDate}
                                     onChange={e => setNewCustomer({ ...newCustomer, birthDate: e.target.value })}
@@ -286,8 +301,10 @@ export default function CustomersPage() {
                             </div>
                         </div>
                         <div className="flex gap-3 mt-8">
-                            <button onClick={() => setNewCustomerOpen(false)} className="flex-1 py-4 text-slate-500 font-bold uppercase tracking-widest text-xs hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all">Cancelar</button>
-                            <button onClick={handleCreateCustomer} className="flex-1 py-4 bg-primary text-white font-black uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all">Guardar</button>
+                            <button onClick={() => { setNewCustomerOpen(false); setCustomerErrors({}) }} className="flex-1 py-4 text-slate-500 font-bold uppercase tracking-widest text-xs hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all">Cancelar</button>
+                            <button onClick={handleCreateCustomer} disabled={savingCustomer} className="flex-1 py-4 bg-primary text-white font-black uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-60 disabled:scale-100">
+                                {savingCustomer ? 'Guardando...' : 'Guardar'}
+                            </button>
                         </div>
                     </div>
                 </div>

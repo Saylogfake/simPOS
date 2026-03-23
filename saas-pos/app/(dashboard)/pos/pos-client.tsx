@@ -69,6 +69,7 @@ export default function POSClient() {
     // Nuevo cliente desde POS
     const [newCustomerOpen, setNewCustomerOpen] = useState(false)
     const [newCustomerForm, setNewCustomerForm] = useState({ name: "", documentId: "", phone: "", email: "", birthDate: "" })
+    const [newCustomerErrors, setNewCustomerErrors] = useState<{ name?: string; documentId?: string; email?: string }>({})
     const [savingCustomer, setSavingCustomer] = useState(false)
     const [products, setProducts] = useState<Product[]>([])
     const [categories, setCategories] = useState<Category[]>([])
@@ -281,8 +282,13 @@ export default function POSClient() {
     const total = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0)
 
     const handleCreateCustomer = async () => {
-        if (!newCustomerForm.name.trim()) { alert("El nombre es obligatorio"); return }
-        if (!newCustomerForm.documentId.trim()) { alert("La cédula/RUC es obligatoria"); return }
+        const errors: { name?: string; documentId?: string; email?: string } = {}
+        if (!newCustomerForm.name.trim()) errors.name = "El nombre es obligatorio"
+        else if (newCustomerForm.name.trim().length < 2) errors.name = "Mínimo 2 caracteres"
+        if (!newCustomerForm.documentId.trim()) errors.documentId = "La cédula/RUC es obligatoria"
+        if (newCustomerForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newCustomerForm.email)) errors.email = "Email no válido"
+        if (Object.keys(errors).length > 0) { setNewCustomerErrors(errors); return }
+        setNewCustomerErrors({})
         setSavingCustomer(true)
         try {
             const token = localStorage.getItem("token")
@@ -290,8 +296,8 @@ export default function POSClient() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({
-                    name: newCustomerForm.name,
-                    documentId: newCustomerForm.documentId,
+                    name: newCustomerForm.name.trim(),
+                    documentId: newCustomerForm.documentId.trim(),
                     phone: newCustomerForm.phone || null,
                     email: newCustomerForm.email || null,
                     birthDate: newCustomerForm.birthDate ? new Date(newCustomerForm.birthDate).toISOString() : null
@@ -299,16 +305,18 @@ export default function POSClient() {
             })
             if (res.ok) {
                 const created = await res.json()
-                // Reload customers and select the new one
                 const custRes = await fetch(`${API_URL}/api/customers`, { headers: { "Authorization": `Bearer ${token}` } })
                 if (custRes.ok) setCustomers(await custRes.json())
                 setSelectedCustomer(created)
                 setNewCustomerOpen(false)
                 setShowCustomerResults(false)
                 setNewCustomerForm({ name: "", documentId: "", phone: "", email: "", birthDate: "" })
+                setNewCustomerErrors({})
             } else {
                 const err = await res.json().catch(() => ({ message: "Error al crear cliente" }))
-                alert(err.message || "Error al crear cliente")
+                if (err.message?.includes("cédula")) setNewCustomerErrors({ documentId: err.message })
+                else if (err.message?.includes("nombre")) setNewCustomerErrors({ name: err.message })
+                else alert(err.message || "Error al crear cliente")
             }
         } catch (e) { alert("Error de conexión") }
         finally { setSavingCustomer(false) }
@@ -492,37 +500,46 @@ export default function POSClient() {
                                         <div className="p-4 space-y-3">
                                             <div className="flex items-center justify-between mb-1">
                                                 <span className="text-[10px] font-black uppercase tracking-widest text-primary">Nuevo Cliente</span>
-                                                <button onClick={() => setNewCustomerOpen(false)} className="text-slate-400 hover:text-slate-600">
+                                                <button onClick={() => { setNewCustomerOpen(false); setNewCustomerErrors({}) }} className="text-slate-400 hover:text-slate-600">
                                                     <span className="material-symbols-outlined text-sm">arrow_back</span>
                                                 </button>
                                             </div>
                                             <div className="space-y-2">
-                                                <input
-                                                    autoFocus
-                                                    className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:border-primary"
-                                                    placeholder="Cédula / RUC *"
-                                                    value={newCustomerForm.documentId}
-                                                    onChange={e => setNewCustomerForm(f => ({ ...f, documentId: e.target.value }))}
-                                                />
-                                                <input
-                                                    className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:border-primary"
-                                                    placeholder="Nombre completo *"
-                                                    value={newCustomerForm.name}
-                                                    onChange={e => setNewCustomerForm(f => ({ ...f, name: e.target.value }))}
-                                                />
+                                                <div>
+                                                    <input
+                                                        autoFocus
+                                                        className={`w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-900 border rounded-lg outline-none focus:border-primary ${newCustomerErrors.documentId ? 'border-rose-500' : 'border-slate-200 dark:border-slate-700'}`}
+                                                        placeholder="Cédula / RUC *"
+                                                        value={newCustomerForm.documentId}
+                                                        onChange={e => { setNewCustomerForm(f => ({ ...f, documentId: e.target.value })); setNewCustomerErrors(p => ({ ...p, documentId: undefined })) }}
+                                                    />
+                                                    {newCustomerErrors.documentId && <p className="text-[10px] text-rose-500 mt-0.5 px-1">{newCustomerErrors.documentId}</p>}
+                                                </div>
+                                                <div>
+                                                    <input
+                                                        className={`w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-900 border rounded-lg outline-none focus:border-primary ${newCustomerErrors.name ? 'border-rose-500' : 'border-slate-200 dark:border-slate-700'}`}
+                                                        placeholder="Nombre completo *"
+                                                        value={newCustomerForm.name}
+                                                        onChange={e => { setNewCustomerForm(f => ({ ...f, name: e.target.value })); setNewCustomerErrors(p => ({ ...p, name: undefined })) }}
+                                                    />
+                                                    {newCustomerErrors.name && <p className="text-[10px] text-rose-500 mt-0.5 px-1">{newCustomerErrors.name}</p>}
+                                                </div>
                                                 <input
                                                     className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:border-primary"
                                                     placeholder="Teléfono"
                                                     value={newCustomerForm.phone}
                                                     onChange={e => setNewCustomerForm(f => ({ ...f, phone: e.target.value }))}
                                                 />
-                                                <input
-                                                    type="email"
-                                                    className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:border-primary"
-                                                    placeholder="Correo electrónico"
-                                                    value={newCustomerForm.email}
-                                                    onChange={e => setNewCustomerForm(f => ({ ...f, email: e.target.value }))}
-                                                />
+                                                <div>
+                                                    <input
+                                                        type="email"
+                                                        className={`w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-900 border rounded-lg outline-none focus:border-primary ${newCustomerErrors.email ? 'border-rose-500' : 'border-slate-200 dark:border-slate-700'}`}
+                                                        placeholder="Correo electrónico"
+                                                        value={newCustomerForm.email}
+                                                        onChange={e => { setNewCustomerForm(f => ({ ...f, email: e.target.value })); setNewCustomerErrors(p => ({ ...p, email: undefined })) }}
+                                                    />
+                                                    {newCustomerErrors.email && <p className="text-[10px] text-rose-500 mt-0.5 px-1">{newCustomerErrors.email}</p>}
+                                                </div>
                                                 <div className="space-y-0.5">
                                                     <label className="text-[9px] font-bold text-slate-400 uppercase px-1">Fecha de nacimiento (opcional)</label>
                                                     <input
