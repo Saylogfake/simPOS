@@ -360,7 +360,7 @@ export default function POSClient() {
             </div>
 
             <main className="flex flex-1 overflow-hidden">
-                <section className={`flex flex-col w-full md:w-[65%] border-r border-slate-200 dark:border-slate-800 ${mobileView === 'cart' ? 'hidden md:flex' : 'flex'}`}>
+                <section className={`flex flex-col w-full md:w-[65%] min-h-0 border-r border-slate-200 dark:border-slate-800 ${mobileView === 'cart' ? 'hidden md:flex' : 'flex'}`}>
                     <div className="p-4 bg-white dark:bg-slate-900 space-y-4 shadow-sm z-10">
                         <div className="relative group">
                             <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">search</span>
@@ -398,59 +398,68 @@ export default function POSClient() {
                         </div>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-2 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-1.5 content-start">
+                    <div className="flex-1 min-h-0 overflow-y-auto p-2">
+                        <div className="grid gap-1.5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))' }}>
                         {filteredProducts.map(product => {
                             const finalPrice = calculateFinalPrice(product, 1)
                             const hasDiscount = product.discountPercentage > 0
                             const outOfStock = product.trackStock && product.stock <= 0
                             return (
-                                <div
+                                <button
                                     key={product.id}
-                                    onClick={() => !outOfStock && initiateAddToCart(product)}
-                                    className={`relative bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden transition-all cursor-pointer select-none active:scale-95
-                                        ${outOfStock ? 'opacity-40 grayscale cursor-not-allowed' : 'hover:border-primary hover:shadow-md hover:shadow-primary/10'}`}
+                                    type="button"
+                                    disabled={outOfStock}
+                                    onClick={() => initiateAddToCart(product)}
+                                    className={`relative flex flex-col w-full text-left bg-white dark:bg-slate-900 rounded-lg border overflow-hidden transition-all select-none
+                                        ${outOfStock
+                                            ? 'opacity-40 grayscale cursor-not-allowed border-slate-200 dark:border-slate-800'
+                                            : 'border-slate-200 dark:border-slate-800 hover:border-primary active:scale-95 active:bg-primary/5 cursor-pointer'
+                                        }`}
                                 >
-                                    {/* Image or color block */}
+                                    {/* Image */}
                                     {product.image_url ? (
-                                        <div className="h-16 sm:h-20 w-full relative bg-slate-100 dark:bg-slate-800">
-                                            <img
-                                                src={product.image_url}
-                                                alt={product.name}
-                                                className="w-full h-full object-cover"
-                                                onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
-                                            />
-                                        </div>
-                                    ) : (
-                                        <div className="h-8 w-full bg-primary/10 flex items-center justify-center">
-                                            <span className="text-[10px] font-black text-primary uppercase tracking-widest opacity-60">
-                                                {product.name.substring(0, 3)}
-                                            </span>
-                                        </div>
-                                    )}
+                                        <img
+                                            src={product.image_url}
+                                            alt={product.name}
+                                            className="w-full aspect-square object-cover bg-slate-100 dark:bg-slate-800"
+                                            onError={e => {
+                                                const el = e.target as HTMLImageElement
+                                                el.style.display = 'none'
+                                                const fb = el.nextElementSibling as HTMLElement
+                                                if (fb) fb.style.display = 'flex'
+                                            }}
+                                        />
+                                    ) : null}
+                                    {/* Fallback block */}
+                                    <div
+                                        className="w-full aspect-square bg-gradient-to-br from-primary/10 to-primary/5 items-center justify-center"
+                                        style={{ display: product.image_url ? 'none' : 'flex' }}
+                                    >
+                                        <span className="text-primary font-black text-xl uppercase opacity-30 leading-none select-none">
+                                            {product.name.substring(0, 2)}
+                                        </span>
+                                    </div>
 
-                                    {/* Badges */}
                                     {hasDiscount && (
-                                        <div className="absolute top-1 right-1 bg-red-500 text-white px-1.5 py-0.5 rounded text-[8px] font-black">
+                                        <span className="absolute top-1 right-1 bg-red-500 text-white text-[8px] font-black px-1 py-0.5 rounded leading-none">
                                             -{product.discountPercentage}%
-                                        </div>
+                                        </span>
                                     )}
                                     {product.saleType === "WEIGHT" && (
-                                        <div className="absolute top-1 left-1 bg-amber-500 text-white rounded p-0.5">
-                                            <span className="material-symbols-outlined text-[10px]">scale</span>
-                                        </div>
+                                        <span className="absolute top-1 left-1 bg-amber-500 text-white text-[8px] font-black px-1 py-0.5 rounded leading-none">kg</span>
                                     )}
 
-                                    {/* Info */}
-                                    <div className="p-1.5">
-                                        <p className="text-[10px] sm:text-xs font-bold text-slate-800 dark:text-slate-100 leading-tight line-clamp-2 min-h-[2rem]">{product.name}</p>
-                                        <p className="text-primary font-black text-xs sm:text-sm mt-0.5 leading-none">{formatMoney(finalPrice)}</p>
-                                        <p className="text-[8px] text-slate-400 font-bold uppercase mt-0.5">
-                                            {!product.trackStock ? '∞' : `${Number(product.stock).toFixed(product.saleType === "WEIGHT" ? 1 : 0)}`}
-                                        </p>
+                                    <div className="p-1.5 flex flex-col gap-0.5">
+                                        <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-200 leading-tight line-clamp-2">{product.name}</span>
+                                        <span className="text-xs font-black text-primary leading-none">{formatMoney(finalPrice)}</span>
+                                        <span className="text-[8px] text-slate-400 leading-none">
+                                            {!product.trackStock ? '∞' : Number(product.stock).toFixed(product.saleType === "WEIGHT" ? 1 : 0)}
+                                        </span>
                                     </div>
-                                </div>
+                                </button>
                             )
                         })}
+                        </div>
                     </div>
                 </section>
 
