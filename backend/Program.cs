@@ -145,6 +145,15 @@ using (var scope = app.Services.CreateScope())
             @"ALTER TABLE ""Products"" ADD COLUMN IF NOT EXISTS ""Status"" text NOT NULL DEFAULT 'ACTIVE';",
             @"ALTER TABLE ""Products"" ADD COLUMN IF NOT EXISTS ""Cost"" numeric NOT NULL DEFAULT 0;",
             @"ALTER TABLE ""Products"" ADD COLUMN IF NOT EXISTS ""InternalCode"" text NOT NULL DEFAULT '';",
+            @"CREATE TABLE IF NOT EXISTS ""Notifications"" (
+                ""Id"" uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+                ""TenantId"" uuid NULL,
+                ""Type"" text NOT NULL DEFAULT 'INFO',
+                ""Title"" text NOT NULL,
+                ""Message"" text NOT NULL,
+                ""IsRead"" boolean NOT NULL DEFAULT false,
+                ""CreatedAt"" timestamp NOT NULL DEFAULT now()
+            );",
         };
         foreach (var sql in columnMigrations)
         {

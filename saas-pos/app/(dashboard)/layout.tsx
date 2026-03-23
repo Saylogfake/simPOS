@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
+import { NotificationsPanel } from "@/components/NotificationsPanel"
 
 export default function DashboardLayout({
     children,
@@ -208,10 +209,7 @@ export default function DashboardLayout({
                         
                     </div>
                     <div className="flex items-center gap-4">
-                        <button className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full relative">
-                            <span className="material-symbols-outlined">notifications</span>
-                            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-900"></span>
-                        </button>
+                        <NotificationsPanel />
                         <div className="h-8 w-px bg-slate-200 dark:bg-slate-800"></div>
                         <div className="flex items-center gap-3">
                             <div className="text-right hidden sm:block">

@@ -383,6 +383,7 @@ namespace SaasPos.Backend.Data
         public DbSet<CustomerDebt> CustomerDebts { get; set; }
         public DbSet<DebtPayment> DebtPayments { get; set; }
         public DbSet<Tenant> Tenants { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

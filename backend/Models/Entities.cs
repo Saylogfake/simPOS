@@ -254,6 +254,18 @@ namespace SaasPos.Backend.Models
         public CustomerDebt CustomerDebt { get; set; }
     }
 
+    public class Notification
+    {
+        [Key]
+        public Guid Id { get; set; } = Guid.NewGuid();
+        public Guid? TenantId { get; set; }       // null = broadcast a todos
+        public string Type { get; set; } = "INFO"; // INFO, WARNING, DANGER, PAYMENT
+        public string Title { get; set; }
+        public string Message { get; set; }
+        public bool IsRead { get; set; } = false;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    }
+
     public class Tenant
     {
         [Key]

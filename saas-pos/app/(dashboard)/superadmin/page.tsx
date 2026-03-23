@@ -46,6 +46,8 @@ export default function SuperAdminPage() {
     const [showModal, setShowModal] = useState(false)
     const [editTenant, setEditTenant] = useState<Tenant | null>(null)
     const [search, setSearch] = useState("")
+    const [notifForm, setNotifForm] = useState({ tenantId: "", type: "INFO", title: "", message: "" })
+    const [sendingNotif, setSendingNotif] = useState(false)
 
     const token = typeof window !== "undefined" ? localStorage.getItem("token") : null
     const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
@@ -79,6 +81,34 @@ export default function SuperAdminPage() {
             fetchAll()
         } else {
             toast.error("Error al actualizar")
+        }
+    }
+
+    const handleSendNotification = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!notifForm.title || !notifForm.message) return
+        setSendingNotif(true)
+        try {
+            const res = await fetch(`${API_URL}/api/notifications`, {
+                method: "POST",
+                headers,
+                body: JSON.stringify({
+                    tenantId: notifForm.tenantId || null,
+                    type: notifForm.type,
+                    title: notifForm.title,
+                    message: notifForm.message,
+                })
+            })
+            if (res.ok) {
+                toast.success("Notificación enviada")
+                setNotifForm({ tenantId: "", type: "INFO", title: "", message: "" })
+            } else {
+                toast.error("Error al enviar")
+            }
+        } catch {
+            toast.error("Error de conexión")
+        } finally {
+            setSendingNotif(false)
         }
     }
 
@@ -124,6 +154,75 @@ export default function SuperAdminPage() {
                     ))}
                 </div>
             )}
+
+            {/* Send Notification */}
+            <div className="bg-slate-800 rounded-2xl border border-slate-700 p-6">
+                <div className="flex items-center gap-3 mb-5">
+                    <span className="material-symbols-outlined text-violet-400 text-2xl">send</span>
+                    <div>
+                        <h2 className="text-sm font-black text-white uppercase tracking-widest">Enviar Notificación</h2>
+                        <p className="text-xs text-slate-400">Envía mensajes a uno o todos los negocios</p>
+                    </div>
+                </div>
+                <form onSubmit={handleSendNotification} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Destinatario</label>
+                        <select
+                            value={notifForm.tenantId}
+                            onChange={e => setNotifForm(f => ({ ...f, tenantId: e.target.value }))}
+                            className="mt-1 w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                        >
+                            <option value="">📢 Todos los negocios (broadcast)</option>
+                            {tenants.map(t => (
+                                <option key={t.id} value={t.id}>{t.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tipo</label>
+                        <select
+                            value={notifForm.type}
+                            onChange={e => setNotifForm(f => ({ ...f, type: e.target.value }))}
+                            className="mt-1 w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                        >
+                            <option value="INFO">ℹ️ Información</option>
+                            <option value="WARNING">⚠️ Advertencia</option>
+                            <option value="DANGER">🚨 Urgente</option>
+                            <option value="PAYMENT">💳 Pago / Facturación</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Título *</label>
+                        <input
+                            required
+                            value={notifForm.title}
+                            onChange={e => setNotifForm(f => ({ ...f, title: e.target.value }))}
+                            placeholder="Ej: Pago pendiente"
+                            className="mt-1 w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                        />
+                    </div>
+                    <div>
+                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Mensaje *</label>
+                        <input
+                            required
+                            value={notifForm.message}
+                            onChange={e => setNotifForm(f => ({ ...f, message: e.target.value }))}
+                            placeholder="Ej: Su plan vence en 3 días..."
+                            className="mt-1 w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                        />
+                    </div>
+                    <div className="md:col-span-2 flex justify-end">
+                        <button
+                            type="submit"
+                            disabled={sendingNotif}
+                            className="flex items-center gap-2 bg-violet-600 hover:bg-violet-500 text-white px-6 py-2.5 rounded-xl text-sm font-black uppercase tracking-widest shadow-lg shadow-violet-600/20 transition-all active:scale-95 disabled:opacity-50"
+                        >
+                            <span className="material-symbols-outlined text-lg">send</span>
+                            {sendingNotif ? "Enviando..." : "Enviar"}
+                        </button>
+                    </div>
+                </form>
+            </div>
 
             {/* Search */}
             <div className="relative max-w-sm">
