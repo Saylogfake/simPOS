@@ -36,9 +36,15 @@ interface CustomerDetailsModalProps {
 export function CustomerDetailsModal({ customer, isOpen, onClose, onUpdate }: CustomerDetailsModalProps) {
     const [debts, setDebts] = useState<Debt[]>([])
     const [loading, setLoading] = useState(false)
-    const [payAmount, setPayAmount] = useState<Record<string, string>>({}) // debtId -> amount
+    const [payAmount, setPayAmount] = useState<Record<string, string>>({})
     const [paymentMethod, setPaymentMethod] = useState("CASH")
     const [registerId, setRegisterId] = useState<string | null>(null)
+
+    // Nueva deuda
+    const [newDebtOpen, setNewDebtOpen] = useState(false)
+    const [newDebtAmount, setNewDebtAmount] = useState("")
+    const [newDebtDueDate, setNewDebtDueDate] = useState("")
+    const [savingDebt, setSavingDebt] = useState(false)
 
     useEffect(() => {
         if (customer && isOpen) {
@@ -85,34 +91,55 @@ export function CustomerDetailsModal({ customer, isOpen, onClose, onUpdate }: Cu
             toast.error("Ingrese monto y asegúrese de que la caja esté abierta")
             return
         }
+        const amount = parseFloat(amountStr)
+        if (isNaN(amount) || amount <= 0) { toast.error("Monto inválido"); return }
 
         try {
             const token = localStorage.getItem("token")
             const res = await fetch(`${API_URL}/api/debts/pay`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    debtId,
-                    amount: parseFloat(amountStr),
-                    paymentMethod,
-                    cashRegisterId: registerId
-                })
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ debtId, amount, paymentMethod, cashRegisterId: registerId })
             })
-
             if (res.ok) {
                 toast.success("Pago registrado exitosamente")
-                fetchDebts()
-                onUpdate()
+                fetchDebts(); onUpdate()
                 setPayAmount(prev => ({ ...prev, [debtId]: "" }))
             } else {
-                toast.error("Error al registrar pago")
+                const err = await res.json().catch(() => ({ message: "Error al registrar pago" }))
+                toast.error(err.message || "Error al registrar pago")
             }
-        } catch (e) {
-            toast.error("Error de conexión")
-        }
+        } catch (e) { toast.error("Error de conexión") }
+    }
+
+    const handleCreateDebt = async () => {
+        if (!customer) return
+        const amount = parseFloat(newDebtAmount)
+        if (isNaN(amount) || amount <= 0) { toast.error("Ingrese un monto válido mayor a 0"); return }
+        if (!newDebtDueDate) { toast.error("Seleccione una fecha de vencimiento"); return }
+
+        setSavingDebt(true)
+        try {
+            const token = localStorage.getItem("token")
+            const res = await fetch(`${API_URL}/api/debts`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({
+                    customerId: customer.id,
+                    amount,
+                    dueDate: new Date(newDebtDueDate).toISOString()
+                })
+            })
+            if (res.ok) {
+                toast.success("Deuda registrada correctamente")
+                setNewDebtAmount(""); setNewDebtDueDate(""); setNewDebtOpen(false)
+                fetchDebts(); onUpdate()
+            } else {
+                const err = await res.json().catch(() => ({ message: "Error al registrar deuda" }))
+                toast.error(err.message || "Error al registrar deuda")
+            }
+        } catch (e) { toast.error("Error de conexión") }
+        finally { setSavingDebt(false) }
     }
 
     const formatMoney = (amount: number) => {
@@ -194,6 +221,61 @@ export function CustomerDetailsModal({ customer, isOpen, onClose, onUpdate }: Cu
                                 </TabsList>
 
                                 <TabsContent value="debts" className="space-y-4 outline-none">
+                                    {/* Botón nueva deuda */}
+                                    <div className="flex justify-end">
+                                        <Button
+                                            onClick={() => setNewDebtOpen(v => !v)}
+                                            className="h-10 px-6 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-black uppercase italic tracking-widest text-[10px] shadow-lg shadow-rose-500/20 flex items-center gap-2 active:scale-95 transition-all"
+                                        >
+                                            <span className="material-symbols-outlined text-sm">add_circle</span>
+                                            {newDebtOpen ? "Cancelar" : "Registrar Deuda"}
+                                        </Button>
+                                    </div>
+
+                                    {/* Formulario nueva deuda */}
+                                    {newDebtOpen && (
+                                        <div className="p-6 bg-rose-50 dark:bg-rose-900/10 rounded-2xl border-2 border-rose-200 dark:border-rose-900/30 space-y-4">
+                                            <h4 className="text-[10px] font-black uppercase tracking-widest text-rose-600 flex items-center gap-2">
+                                                <span className="material-symbols-outlined text-sm">receipt_long</span>
+                                                Nueva Deuda Manual
+                                            </h4>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                <div className="space-y-1">
+                                                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Monto (₲)</label>
+                                                    <input
+                                                        type="number"
+                                                        min="1"
+                                                        placeholder="0"
+                                                        value={newDebtAmount}
+                                                        onChange={e => setNewDebtAmount(e.target.value)}
+                                                        className="w-full h-12 bg-white dark:bg-slate-800 border-2 border-rose-200 dark:border-rose-900/40 rounded-xl text-xl font-black italic text-rose-600 px-4 outline-none focus:border-rose-500 transition-all"
+                                                    />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Fecha de Vencimiento</label>
+                                                    <input
+                                                        type="date"
+                                                        value={newDebtDueDate}
+                                                        onChange={e => setNewDebtDueDate(e.target.value)}
+                                                        min={new Date().toISOString().split('T')[0]}
+                                                        className="w-full h-12 bg-white dark:bg-slate-800 border-2 border-rose-200 dark:border-rose-900/40 rounded-xl text-sm font-bold px-4 outline-none focus:border-rose-500 transition-all"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <Button
+                                                onClick={handleCreateDebt}
+                                                disabled={savingDebt || !newDebtAmount || !newDebtDueDate}
+                                                className="w-full h-12 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black uppercase italic tracking-widest text-[10px] shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
+                                            >
+                                                {savingDebt
+                                                    ? <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                                                    : <span className="material-symbols-outlined text-sm">save</span>
+                                                }
+                                                Confirmar Deuda
+                                            </Button>
+                                        </div>
+                                    )}
+
                                     <div className="grid grid-cols-1 gap-4">
                                         {debts.filter(d => d.status !== 'PAID').map(debt => (
                                             <div key={debt.id} className="p-6 bg-white dark:bg-slate-800 rounded-3xl border-2 border-slate-100 dark:border-slate-700 shadow-sm hover:border-primary/30 transition-all group">
