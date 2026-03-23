@@ -76,8 +76,6 @@ namespace SaasPos.Backend.Controllers
             return customer;
         }
     }
-}
-
 
     public class CreateCustomerRequest
     {
