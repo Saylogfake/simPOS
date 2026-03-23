@@ -398,39 +398,55 @@ export default function POSClient() {
                         </div>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 content-start">
+                    <div className="flex-1 overflow-y-auto p-2 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-1.5 content-start">
                         {filteredProducts.map(product => {
                             const finalPrice = calculateFinalPrice(product, 1)
                             const hasDiscount = product.discountPercentage > 0
+                            const outOfStock = product.trackStock && product.stock <= 0
                             return (
-                                <div 
+                                <div
                                     key={product.id}
-                                    onClick={() => (!product.trackStock || product.stock > 0) && initiateAddToCart(product)}
-                                    className={`bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden hover:border-primary transition-all cursor-pointer group shadow-sm flex flex-col h-full ${product.trackStock && product.stock <= 0 ? 'opacity-50 grayscale' : ''}`}
+                                    onClick={() => !outOfStock && initiateAddToCart(product)}
+                                    className={`relative bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden transition-all cursor-pointer select-none active:scale-95
+                                        ${outOfStock ? 'opacity-40 grayscale cursor-not-allowed' : 'hover:border-primary hover:shadow-md hover:shadow-primary/10'}`}
                                 >
-                                    <div className="h-28 bg-slate-100 dark:bg-slate-800 relative">
-                                        <div className="absolute inset-0 bg-cover bg-center flex items-center justify-center text-slate-300 font-bold text-lg uppercase bg-no-repeat" style={{ backgroundImage: product.image_url ? `url(${product.image_url})` : 'none' }}>
-                                            {!product.image_url && product.name.substring(0,2)}
+                                    {/* Image or color block */}
+                                    {product.image_url ? (
+                                        <div className="h-16 sm:h-20 w-full relative bg-slate-100 dark:bg-slate-800">
+                                            <img
+                                                src={product.image_url}
+                                                alt={product.name}
+                                                className="w-full h-full object-cover"
+                                                onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+                                            />
                                         </div>
-                                        {hasDiscount && (
-                                            <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-0.5 rounded-lg text-[10px] font-black italic">
-                                                -{product.discountPercentage}%
-                                            </div>
-                                        )}
-                                        {product.saleType === "WEIGHT" && (
-                                            <div className="absolute bottom-2 left-2 bg-amber-500 text-white p-1 rounded-md">
-                                                <span className="material-symbols-outlined text-sm">scale</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="p-3 flex flex-col justify-between flex-1">
-                                        <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 line-clamp-2 leading-tight h-10">{product.name}</h3>
-                                        <div className="mt-2 text-right">
-                                            <p className="text-primary font-black text-base">{formatMoney(finalPrice)}</p>
-                                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
-                                                Stock: {!product.trackStock ? '∞' : Number(product.stock).toFixed(product.saleType === "WEIGHT" ? 2 : 0)}
-                                            </p>
+                                    ) : (
+                                        <div className="h-8 w-full bg-primary/10 flex items-center justify-center">
+                                            <span className="text-[10px] font-black text-primary uppercase tracking-widest opacity-60">
+                                                {product.name.substring(0, 3)}
+                                            </span>
                                         </div>
+                                    )}
+
+                                    {/* Badges */}
+                                    {hasDiscount && (
+                                        <div className="absolute top-1 right-1 bg-red-500 text-white px-1.5 py-0.5 rounded text-[8px] font-black">
+                                            -{product.discountPercentage}%
+                                        </div>
+                                    )}
+                                    {product.saleType === "WEIGHT" && (
+                                        <div className="absolute top-1 left-1 bg-amber-500 text-white rounded p-0.5">
+                                            <span className="material-symbols-outlined text-[10px]">scale</span>
+                                        </div>
+                                    )}
+
+                                    {/* Info */}
+                                    <div className="p-1.5">
+                                        <p className="text-[10px] sm:text-xs font-bold text-slate-800 dark:text-slate-100 leading-tight line-clamp-2 min-h-[2rem]">{product.name}</p>
+                                        <p className="text-primary font-black text-xs sm:text-sm mt-0.5 leading-none">{formatMoney(finalPrice)}</p>
+                                        <p className="text-[8px] text-slate-400 font-bold uppercase mt-0.5">
+                                            {!product.trackStock ? '∞' : `${Number(product.stock).toFixed(product.saleType === "WEIGHT" ? 1 : 0)}`}
+                                        </p>
                                     </div>
                                 </div>
                             )
