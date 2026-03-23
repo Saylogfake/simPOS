@@ -85,7 +85,7 @@ export function AddProductTab({ onSuccess }: AddProductTabProps) {
                 minStock: parsedMinStock,
                 categoryId,
                 saleType,
-                imageUrl: imageUrl || "https://placehold.co/100",
+                imageUrl: imageUrl || null,
                 wholesalePrice: parsedWholesalePrice,
                 wholesaleMinQty: parsedWholesaleMinQty,
                 expirationDate: expirationDate ? new Date(expirationDate).toISOString() : null,

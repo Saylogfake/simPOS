@@ -417,30 +417,16 @@ export default function POSClient() {
                                         }`}
                                 >
                                     {/* Image */}
-                                    {product.imageUrl ? (
-                                        <img
-                                            src={product.imageUrl}
-                                            alt={product.name}
-                                            className="w-full aspect-square object-cover bg-slate-100 dark:bg-slate-800"
-                                            onError={e => {
-                                                const el = e.target as HTMLImageElement
-                                                el.style.display = 'none'
-                                                const fb = el.nextElementSibling as HTMLElement
-                                                if (fb) fb.style.display = 'flex'
-                                            }}
-                                        />
-                                    ) : null}
-                                    {/* Fallback block */}
-                                    <div
-                                        className="w-full aspect-square bg-slate-100 dark:bg-slate-800 items-center justify-center overflow-hidden"
-                                        style={{ display: product.imageUrl ? 'none' : 'flex' }}
-                                    >
-                                        <img
-                                            src="https://bepchinhhang.com/Data/images/chinh-sach/pngtree-.png"
-                                            alt="Sin imagen"
-                                            className="w-full h-full object-cover opacity-40"
-                                        />
-                                    </div>
+                                    <img
+                                        src={
+                                            product.imageUrl && !product.imageUrl.includes('placehold')
+                                                ? product.imageUrl
+                                                : "https://png.pngtree.com/png-vector/20190927/ourlarge/pngtree-cancel-cart-product-icon-png-image_1736147.jpg"
+                                        }
+                                        alt={product.name}
+                                        className="w-full aspect-square object-cover bg-slate-100 dark:bg-slate-800"
+                                        onError={e => { (e.target as HTMLImageElement).src = "https://png.pngtree.com/png-vector/20190927/ourlarge/pngtree-cancel-cart-product-icon-png-image_1736147.jpg" }}
+                                    />
 
                                     {hasDiscount && (
                                         <span className="absolute top-1 right-1 bg-red-500 text-white text-[8px] font-black px-1 py-0.5 rounded leading-none">

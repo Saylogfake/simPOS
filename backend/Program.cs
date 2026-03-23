@@ -152,6 +152,14 @@ using (var scope = app.Services.CreateScope())
             catch (Exception colEx) { Console.WriteLine($"Column migration skipped: {colEx.Message}"); }
         }
 
+        // Fix: limpiar imageUrl con placehold.co (datos sucios de versiones anteriores)
+        try
+        {
+            db.Database.ExecuteSqlRaw(@"UPDATE ""Products"" SET ""ImageUrl"" = NULL WHERE ""ImageUrl"" LIKE '%placehold%';");
+            Console.WriteLine("ImageUrl cleanup applied.");
+        }
+        catch (Exception imgEx) { Console.WriteLine($"ImageUrl cleanup skipped: {imgEx.Message}"); }
+
         // Fix: si hay productos/categorías con TenantId vacío, asignarles el primer tenant activo
         try
         {

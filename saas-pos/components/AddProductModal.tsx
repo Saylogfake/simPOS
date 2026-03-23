@@ -90,7 +90,7 @@ export function AddProductModal({ isOpen, onClose, onSuccess }: AddProductModalP
                 minStock: parseFloat(minStock) || 0,
                 categoryId,
                 saleType,
-                imageUrl: imageUrl || "https://placehold.co/100" // Default placeholder
+                imageUrl: imageUrl || null,
             }
 
             const token = localStorage.getItem("token")
