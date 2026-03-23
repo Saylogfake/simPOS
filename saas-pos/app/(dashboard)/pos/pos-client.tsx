@@ -23,7 +23,7 @@ type Product = {
     id: string
     name: string
     price: string | number
-    image_url: string | null
+    imageUrl: string | null
     categoryId: string
     category: { id: string; name: string } | null
     saleType: "UNIT" | "WEIGHT"
@@ -417,9 +417,9 @@ export default function POSClient() {
                                         }`}
                                 >
                                     {/* Image */}
-                                    {product.image_url ? (
+                                    {product.imageUrl ? (
                                         <img
-                                            src={product.image_url}
+                                            src={product.imageUrl}
                                             alt={product.name}
                                             className="w-full aspect-square object-cover bg-slate-100 dark:bg-slate-800"
                                             onError={e => {
@@ -433,7 +433,7 @@ export default function POSClient() {
                                     {/* Fallback block */}
                                     <div
                                         className="w-full aspect-square bg-gradient-to-br from-primary/10 to-primary/5 items-center justify-center"
-                                        style={{ display: product.image_url ? 'none' : 'flex' }}
+                                        style={{ display: product.imageUrl ? 'none' : 'flex' }}
                                     >
                                         <span className="text-primary font-black text-xl uppercase opacity-30 leading-none select-none">
                                             {product.name.substring(0, 2)}
