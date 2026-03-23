@@ -114,6 +114,9 @@ using (var scope = app.Services.CreateScope())
             @"ALTER TABLE ""Products"" ADD COLUMN IF NOT EXISTS ""TenantId"" uuid NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000';",
             @"ALTER TABLE ""Customers"" ADD COLUMN IF NOT EXISTS ""DocumentId"" text NULL;",
             @"ALTER TABLE ""Customers"" ADD COLUMN IF NOT EXISTS ""BirthDate"" timestamp NULL;",
+            // Make Phone/Email nullable in case they were created as NOT NULL
+            @"ALTER TABLE ""Customers"" ALTER COLUMN ""Phone"" DROP NOT NULL;",
+            @"ALTER TABLE ""Customers"" ALTER COLUMN ""Email"" DROP NOT NULL;",
             @"ALTER TABLE ""Products"" ADD COLUMN IF NOT EXISTS ""TrackStock"" boolean NOT NULL DEFAULT true;",
             @"ALTER TABLE ""Products"" ADD COLUMN IF NOT EXISTS ""SaleType"" text NOT NULL DEFAULT 'UNIT';",
             @"ALTER TABLE ""Products"" ADD COLUMN IF NOT EXISTS ""DiscountPercentage"" numeric NOT NULL DEFAULT 0;",
