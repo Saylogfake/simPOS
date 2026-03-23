@@ -66,6 +66,10 @@ export default function POSClient() {
     const [customerSearch, setCustomerSearch] = useState("")
     const [showCustomerResults, setShowCustomerResults] = useState(false)
     const [customers, setCustomers] = useState<Customer[]>([])
+    // Nuevo cliente desde POS
+    const [newCustomerOpen, setNewCustomerOpen] = useState(false)
+    const [newCustomerForm, setNewCustomerForm] = useState({ name: "", documentId: "", phone: "", email: "", birthDate: "" })
+    const [savingCustomer, setSavingCustomer] = useState(false)
     const [products, setProducts] = useState<Product[]>([])
     const [categories, setCategories] = useState<Category[]>([])
     const [checkoutOpen, setCheckoutOpen] = useState(false)
@@ -276,6 +280,40 @@ export default function POSClient() {
 
     const total = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0)
 
+    const handleCreateCustomer = async () => {
+        if (!newCustomerForm.name.trim()) { alert("El nombre es obligatorio"); return }
+        if (!newCustomerForm.documentId.trim()) { alert("La cédula/RUC es obligatoria"); return }
+        setSavingCustomer(true)
+        try {
+            const token = localStorage.getItem("token")
+            const res = await fetch(`${API_URL}/api/customers`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({
+                    name: newCustomerForm.name,
+                    documentId: newCustomerForm.documentId,
+                    phone: newCustomerForm.phone || null,
+                    email: newCustomerForm.email || null,
+                    birthDate: newCustomerForm.birthDate ? new Date(newCustomerForm.birthDate).toISOString() : null
+                })
+            })
+            if (res.ok) {
+                const created = await res.json()
+                // Reload customers and select the new one
+                const custRes = await fetch(`${API_URL}/api/customers`, { headers: { "Authorization": `Bearer ${token}` } })
+                if (custRes.ok) setCustomers(await custRes.json())
+                setSelectedCustomer(created)
+                setNewCustomerOpen(false)
+                setShowCustomerResults(false)
+                setNewCustomerForm({ name: "", documentId: "", phone: "", email: "", birthDate: "" })
+            } else {
+                const err = await res.json().catch(() => ({ message: "Error al crear cliente" }))
+                alert(err.message || "Error al crear cliente")
+            }
+        } catch (e) { alert("Error de conexión") }
+        finally { setSavingCustomer(false) }
+    }
+
     return (
         <div className="flex flex-col h-full overflow-hidden bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100">
             {!cashOpen && (
@@ -406,40 +444,108 @@ export default function POSClient() {
                                 {selectedCustomer ? selectedCustomer.name : 'Añadir Cliente'}
                             </button>
                             {showCustomerResults && (
-                                <div className="absolute top-full left-0 mt-1 w-64 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-50 overflow-hidden">
-                                    <input
-                                        autoFocus
-                                        className="w-full px-3 py-2 text-sm border-b border-slate-200 dark:border-slate-700 bg-transparent outline-none"
-                                        placeholder="Buscar cliente..."
-                                        value={customerSearch}
-                                        onChange={(e) => setCustomerSearch(e.target.value)}
-                                    />
-                                    <div className="max-h-48 overflow-y-auto">
-                                        {selectedCustomer && (
+                                <div className="absolute top-full left-0 mt-1 w-72 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-50 overflow-hidden">
+                                    {!newCustomerOpen ? (
+                                        <>
+                                            <input
+                                                autoFocus
+                                                className="w-full px-3 py-2 text-sm border-b border-slate-200 dark:border-slate-700 bg-transparent outline-none"
+                                                placeholder="Buscar por nombre, teléfono o cédula..."
+                                                value={customerSearch}
+                                                onChange={(e) => setCustomerSearch(e.target.value)}
+                                            />
+                                            <div className="max-h-48 overflow-y-auto">
+                                                {selectedCustomer && (
+                                                    <button
+                                                        onClick={() => { setSelectedCustomer(null); setShowCustomerResults(false); setCustomerSearch(""); }}
+                                                        className="w-full text-left px-3 py-2 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 font-bold"
+                                                    >
+                                                        Quitar cliente
+                                                    </button>
+                                                )}
+                                                {customers
+                                                    .filter(c => !customerSearch || c.name.toLowerCase().includes(customerSearch.toLowerCase()) || c.phone?.includes(customerSearch))
+                                                    .map(c => (
+                                                        <button
+                                                            key={c.id}
+                                                            onClick={() => { setSelectedCustomer(c); setShowCustomerResults(false); setCustomerSearch(""); }}
+                                                            className="w-full text-left px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                                                        >
+                                                            <p className="text-sm font-bold">{c.name}</p>
+                                                            <p className="text-xs text-slate-400">{c.phone}</p>
+                                                        </button>
+                                                    ))
+                                                }
+                                                {customers.filter(c => !customerSearch || c.name.toLowerCase().includes(customerSearch.toLowerCase()) || c.phone?.includes(customerSearch)).length === 0 && (
+                                                    <p className="px-3 py-2 text-xs text-slate-400">No se encontraron clientes</p>
+                                                )}
+                                            </div>
                                             <button
-                                                onClick={() => { setSelectedCustomer(null); setShowCustomerResults(false); setCustomerSearch(""); }}
-                                                className="w-full text-left px-3 py-2 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 font-bold"
+                                                onClick={() => setNewCustomerOpen(true)}
+                                                className="w-full flex items-center gap-2 px-3 py-2.5 text-xs font-black text-primary hover:bg-primary/5 border-t border-slate-100 dark:border-slate-700 transition-colors"
                                             >
-                                                Quitar cliente
+                                                <span className="material-symbols-outlined text-sm">person_add</span>
+                                                Nuevo Cliente
                                             </button>
-                                        )}
-                                        {customers
-                                            .filter(c => !customerSearch || c.name.toLowerCase().includes(customerSearch.toLowerCase()) || c.phone?.includes(customerSearch))
-                                            .map(c => (
-                                                <button
-                                                    key={c.id}
-                                                    onClick={() => { setSelectedCustomer(c); setShowCustomerResults(false); setCustomerSearch(""); }}
-                                                    className="w-full text-left px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                                                >
-                                                    <p className="text-sm font-bold">{c.name}</p>
-                                                    <p className="text-xs text-slate-400">{c.phone}</p>
+                                        </>
+                                    ) : (
+                                        <div className="p-4 space-y-3">
+                                            <div className="flex items-center justify-between mb-1">
+                                                <span className="text-[10px] font-black uppercase tracking-widest text-primary">Nuevo Cliente</span>
+                                                <button onClick={() => setNewCustomerOpen(false)} className="text-slate-400 hover:text-slate-600">
+                                                    <span className="material-symbols-outlined text-sm">arrow_back</span>
                                                 </button>
-                                            ))
-                                        }
-                                        {customers.filter(c => !customerSearch || c.name.toLowerCase().includes(customerSearch.toLowerCase())).length === 0 && (
-                                            <p className="px-3 py-2 text-xs text-slate-400">No se encontraron clientes</p>
-                                        )}
-                                    </div>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <input
+                                                    autoFocus
+                                                    className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:border-primary"
+                                                    placeholder="Cédula / RUC *"
+                                                    value={newCustomerForm.documentId}
+                                                    onChange={e => setNewCustomerForm(f => ({ ...f, documentId: e.target.value }))}
+                                                />
+                                                <input
+                                                    className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:border-primary"
+                                                    placeholder="Nombre completo *"
+                                                    value={newCustomerForm.name}
+                                                    onChange={e => setNewCustomerForm(f => ({ ...f, name: e.target.value }))}
+                                                />
+                                                <input
+                                                    className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:border-primary"
+                                                    placeholder="Teléfono"
+                                                    value={newCustomerForm.phone}
+                                                    onChange={e => setNewCustomerForm(f => ({ ...f, phone: e.target.value }))}
+                                                />
+                                                <input
+                                                    type="email"
+                                                    className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:border-primary"
+                                                    placeholder="Correo electrónico"
+                                                    value={newCustomerForm.email}
+                                                    onChange={e => setNewCustomerForm(f => ({ ...f, email: e.target.value }))}
+                                                />
+                                                <div className="space-y-0.5">
+                                                    <label className="text-[9px] font-bold text-slate-400 uppercase px-1">Fecha de nacimiento (opcional)</label>
+                                                    <input
+                                                        type="date"
+                                                        className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:border-primary"
+                                                        value={newCustomerForm.birthDate}
+                                                        onChange={e => setNewCustomerForm(f => ({ ...f, birthDate: e.target.value }))}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={handleCreateCustomer}
+                                                disabled={savingCustomer}
+                                                className="w-full py-2.5 bg-primary text-white rounded-lg text-xs font-black uppercase tracking-widest hover:bg-primary/90 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                                            >
+                                                {savingCustomer
+                                                    ? <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                                                    : <span className="material-symbols-outlined text-sm">save</span>
+                                                }
+                                                Guardar Cliente
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>

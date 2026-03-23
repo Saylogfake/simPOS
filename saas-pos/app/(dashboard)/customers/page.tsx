@@ -25,7 +25,7 @@ export default function CustomersPage() {
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
     const [detailsOpen, setDetailsOpen] = useState(false)
     const [newCustomerOpen, setNewCustomerOpen] = useState(false)
-    const [newCustomer, setNewCustomer] = useState({ name: "", email: "", phone: "" })
+    const [newCustomer, setNewCustomer] = useState({ name: "", documentId: "", email: "", phone: "", birthDate: "" })
 
     useEffect(() => {
         fetchCustomers()
@@ -50,24 +50,30 @@ export default function CustomersPage() {
     }
 
     const handleCreateCustomer = async () => {
+        if (!newCustomer.name.trim()) return
+        if (!newCustomer.documentId.trim()) { alert("La cédula/RUC es obligatoria"); return }
         try {
             const token = localStorage.getItem("token")
             const res = await fetch(`${API_URL}/api/customers`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(newCustomer)
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({
+                    name: newCustomer.name,
+                    documentId: newCustomer.documentId,
+                    phone: newCustomer.phone || null,
+                    email: newCustomer.email || null,
+                    birthDate: newCustomer.birthDate ? new Date(newCustomer.birthDate).toISOString() : null
+                })
             })
             if (res.ok) {
-                setNewCustomer({ name: "", email: "", phone: "" })
+                setNewCustomer({ name: "", documentId: "", email: "", phone: "", birthDate: "" })
                 setNewCustomerOpen(false)
                 fetchCustomers()
+            } else {
+                const err = await res.json().catch(() => ({ message: "Error" }))
+                alert(err.message || "Error al crear cliente")
             }
-        } catch (e) {
-            console.error(e)
-        }
+        } catch (e) { console.error(e) }
     }
 
     const filteredCustomers = customers.filter(c =>
@@ -233,7 +239,16 @@ export default function CustomersPage() {
                         </div>
                         <div className="space-y-4">
                             <div className="space-y-1">
-                                <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Nombre Completo</label>
+                                <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Cédula / RUC <span className="text-rose-500">*</span></label>
+                                <input 
+                                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-primary font-mono"
+                                    placeholder="Ej: 1234567"
+                                    value={newCustomer.documentId}
+                                    onChange={e => setNewCustomer({ ...newCustomer, documentId: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Nombre Completo <span className="text-rose-500">*</span></label>
                                 <input 
                                     className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-primary"
                                     placeholder="Juan Pérez"
@@ -258,6 +273,15 @@ export default function CustomersPage() {
                                     type="email"
                                     value={newCustomer.email}
                                     onChange={e => setNewCustomer({ ...newCustomer, email: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Fecha de Nacimiento</label>
+                                <input 
+                                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-primary"
+                                    type="date"
+                                    value={newCustomer.birthDate}
+                                    onChange={e => setNewCustomer({ ...newCustomer, birthDate: e.target.value })}
                                 />
                             </div>
                         </div>

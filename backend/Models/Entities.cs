@@ -216,8 +216,10 @@ namespace SaasPos.Backend.Models
     public class Customer : BaseEntity
     {
         public string Name { get; set; }
-        public string Phone { get; set; }
-        public string Email { get; set; }
+        public string? DocumentId { get; set; }  // Cédula / RUC
+        public string? Phone { get; set; }
+        public string? Email { get; set; }
+        public DateTime? BirthDate { get; set; }
         public decimal CreditLimit { get; set; }
         public decimal Balance { get; set; }
     }
