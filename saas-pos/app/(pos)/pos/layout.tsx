@@ -1,16 +1,16 @@
 "use client"
 
-import { useRouter } from "next/navigation"
-
 export default function POSLayout({ children }: { children: React.ReactNode }) {
-    const router = useRouter()
 
     return (
         <div className="flex flex-col h-screen bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100">
             {/* Minimal header */}
             <header className="flex items-center gap-4 px-4 py-3 bg-slate-900 border-b border-slate-800 shrink-0">
                 <button
-                    onClick={() => router.back()}
+                    onClick={() => {
+                        window.open("/", "_blank")
+                        window.close()
+                    }}
                     className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-xs font-black uppercase tracking-widest"
                 >
                     <span className="material-symbols-outlined text-lg">arrow_back</span>
