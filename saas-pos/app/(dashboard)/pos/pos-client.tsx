@@ -436,9 +436,9 @@ export default function POSClient() {
                                         style={{ display: product.imageUrl ? 'none' : 'flex' }}
                                     >
                                         <img
-                                            src="https://png.pngtree.com/png-vector/20190927/ourlarge/pngtree-cancel-cart-product-icon-png-image_1736147.jpg"
+                                            src="https://bepchinhhang.com/Data/images/chinh-sach/pngtree-.png"
                                             alt="Sin imagen"
-                                            className="w-full h-full object-cover opacity-30"
+                                            className="w-full h-full object-cover opacity-40"
                                         />
                                     </div>
 
