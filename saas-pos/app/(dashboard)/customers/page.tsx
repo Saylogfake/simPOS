@@ -11,6 +11,7 @@ type Customer = {
     name: string
     email: string
     phone: string
+    documentId?: string
     balance: number
 }
 
@@ -88,10 +89,15 @@ export default function CustomersPage() {
         finally { setSavingCustomer(false) }
     }
 
-    const filteredCustomers = customers.filter(c =>
-        c.name.toLowerCase().includes(search.toLowerCase()) ||
-        c.phone?.includes(search)
-    )
+    const filteredCustomers = customers.filter(c => {
+        const q = search.toLowerCase()
+        return (
+            c.name.toLowerCase().includes(q) ||
+            c.phone?.includes(search) ||
+            c.email?.toLowerCase().includes(q) ||
+            c.documentId?.includes(search)
+        )
+    })
 
     const stats = {
         total: customers.length,
@@ -112,7 +118,7 @@ export default function CustomersPage() {
                     <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">search</span>
                     <input 
                         className="w-full h-full pl-12 pr-4 bg-white dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-primary text-base"
-                        placeholder="Buscar por nombre, teléfono o email..."
+                        placeholder="Buscar por nombre, cédula, teléfono o email..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                     />

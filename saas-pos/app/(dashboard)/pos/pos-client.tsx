@@ -16,6 +16,7 @@ type Customer = {
     name: string
     email: string
     phone: string
+    documentId?: string
 }
 
 type Product = {
@@ -472,7 +473,11 @@ export default function POSClient() {
                                                     </button>
                                                 )}
                                                 {customers
-                                                    .filter(c => !customerSearch || c.name.toLowerCase().includes(customerSearch.toLowerCase()) || c.phone?.includes(customerSearch))
+                                                    .filter(c => !customerSearch || 
+                                                        c.name.toLowerCase().includes(customerSearch.toLowerCase()) || 
+                                                        c.phone?.includes(customerSearch) ||
+                                                        c.documentId?.includes(customerSearch)
+                                                    )
                                                     .map(c => (
                                                         <button
                                                             key={c.id}
@@ -480,11 +485,15 @@ export default function POSClient() {
                                                             className="w-full text-left px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                                                         >
                                                             <p className="text-sm font-bold">{c.name}</p>
-                                                            <p className="text-xs text-slate-400">{c.phone}</p>
+                                                            <p className="text-xs text-slate-400">{c.documentId ? `CI: ${c.documentId}` : c.phone}</p>
                                                         </button>
                                                     ))
                                                 }
-                                                {customers.filter(c => !customerSearch || c.name.toLowerCase().includes(customerSearch.toLowerCase()) || c.phone?.includes(customerSearch)).length === 0 && (
+                                                {customers.filter(c => !customerSearch || 
+                                                    c.name.toLowerCase().includes(customerSearch.toLowerCase()) || 
+                                                    c.phone?.includes(customerSearch) ||
+                                                    c.documentId?.includes(customerSearch)
+                                                ).length === 0 && (
                                                     <p className="px-3 py-2 text-xs text-slate-400">No se encontraron clientes</p>
                                                 )}
                                             </div>
