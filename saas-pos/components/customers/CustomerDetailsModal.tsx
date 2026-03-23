@@ -37,6 +37,7 @@ export function CustomerDetailsModal({ customer, isOpen, onClose, onUpdate }: Cu
     const [debts, setDebts] = useState<Debt[]>([])
     const [loading, setLoading] = useState(false)
     const [payAmount, setPayAmount] = useState<Record<string, string>>({})
+    const [payingDebt, setPayingDebt] = useState<string | null>(null)
     const [paymentMethod, setPaymentMethod] = useState("CASH")
     const [registerId, setRegisterId] = useState<string | null>(null)
 
@@ -45,6 +46,11 @@ export function CustomerDetailsModal({ customer, isOpen, onClose, onUpdate }: Cu
     const [newDebtAmount, setNewDebtAmount] = useState("")
     const [newDebtDueDate, setNewDebtDueDate] = useState("")
     const [savingDebt, setSavingDebt] = useState(false)
+
+    // Eliminar cliente
+    const [deleteOpen, setDeleteOpen] = useState(false)
+    const [deleteConfirmName, setDeleteConfirmName] = useState("")
+    const [deleting, setDeleting] = useState(false)
 
     useEffect(() => {
         if (customer && isOpen) {
@@ -61,15 +67,9 @@ export function CustomerDetailsModal({ customer, isOpen, onClose, onUpdate }: Cu
             const res = await fetch(`${API_URL}/api/debts/customer/${customer.id}`, {
                 headers: { "Authorization": `Bearer ${token}` }
             })
-            if (res.ok) {
-                const data = await res.json()
-                setDebts(data)
-            }
-        } catch (e) {
-            console.error(e)
-        } finally {
-            setLoading(false)
-        }
+            if (res.ok) setDebts(await res.json())
+        } catch (e) { console.error(e) }
+        finally { setLoading(false) }
     }
 
     const checkRegister = async () => {
@@ -80,20 +80,19 @@ export function CustomerDetailsModal({ customer, isOpen, onClose, onUpdate }: Cu
             })
             if (res.ok) {
                 const data = await res.json()
-                if (data.isOpen) setRegisterId(data.register.id)
+                setRegisterId(data.isOpen ? data.register.id : null)
             }
         } catch { }
     }
 
     const handlePayDebt = async (debtId: string) => {
         const amountStr = payAmount[debtId]
-        if (!amountStr || !registerId) {
-            toast.error("Ingrese monto y asegúrese de que la caja esté abierta")
-            return
-        }
+        if (!amountStr) { toast.error("Ingrese un monto"); return }
+        if (!registerId) { toast.error("La caja debe estar abierta para registrar pagos"); return }
         const amount = parseFloat(amountStr)
         if (isNaN(amount) || amount <= 0) { toast.error("Monto inválido"); return }
 
+        setPayingDebt(debtId)
         try {
             const token = localStorage.getItem("token")
             const res = await fetch(`${API_URL}/api/debts/pay`, {
@@ -103,13 +102,15 @@ export function CustomerDetailsModal({ customer, isOpen, onClose, onUpdate }: Cu
             })
             if (res.ok) {
                 toast.success("Pago registrado exitosamente")
-                fetchDebts(); onUpdate()
+                fetchDebts()
+                onUpdate()
                 setPayAmount(prev => ({ ...prev, [debtId]: "" }))
             } else {
                 const err = await res.json().catch(() => ({ message: "Error al registrar pago" }))
                 toast.error(err.message || "Error al registrar pago")
             }
-        } catch (e) { toast.error("Error de conexión") }
+        } catch { toast.error("Error de conexión") }
+        finally { setPayingDebt(null) }
     }
 
     const handleCreateDebt = async () => {
@@ -124,11 +125,7 @@ export function CustomerDetailsModal({ customer, isOpen, onClose, onUpdate }: Cu
             const res = await fetch(`${API_URL}/api/debts`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({
-                    customerId: customer.id,
-                    amount,
-                    dueDate: new Date(newDebtDueDate).toISOString()
-                })
+                body: JSON.stringify({ customerId: customer.id, amount, dueDate: new Date(newDebtDueDate).toISOString() })
             })
             if (res.ok) {
                 toast.success("Deuda registrada correctamente")
@@ -138,8 +135,33 @@ export function CustomerDetailsModal({ customer, isOpen, onClose, onUpdate }: Cu
                 const err = await res.json().catch(() => ({ message: "Error al registrar deuda" }))
                 toast.error(err.message || "Error al registrar deuda")
             }
-        } catch (e) { toast.error("Error de conexión") }
+        } catch { toast.error("Error de conexión") }
         finally { setSavingDebt(false) }
+    }
+
+    const handleDeleteCustomer = async () => {
+        if (!customer || deleteConfirmName.trim().toLowerCase() !== customer.name.trim().toLowerCase()) {
+            toast.error("El nombre no coincide")
+            return
+        }
+        setDeleting(true)
+        try {
+            const token = localStorage.getItem("token")
+            const res = await fetch(`${API_URL}/api/customers/${customer.id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+            if (res.ok) {
+                toast.success("Cliente eliminado correctamente")
+                setDeleteOpen(false)
+                onUpdate()
+                onClose()
+            } else {
+                const err = await res.json().catch(() => ({ message: "Error al eliminar" }))
+                toast.error(err.message || "Error al eliminar cliente")
+            }
+        } catch { toast.error("Error de conexión") }
+        finally { setDeleting(false) }
     }
 
     const formatMoney = (amount: number) => {
@@ -337,10 +359,13 @@ export function CustomerDetailsModal({ customer, isOpen, onClose, onUpdate }: Cu
                                                     <div className="pt-6">
                                                         <Button 
                                                             onClick={() => handlePayDebt(debt.id)} 
-                                                            disabled={!registerId || !payAmount[debt.id]}
+                                                            disabled={!registerId || !payAmount[debt.id] || payingDebt === debt.id}
                                                             className="h-12 px-8 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-black uppercase italic tracking-widest text-[10px] shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex items-center gap-2"
                                                         >
-                                                            <span className="material-symbols-outlined text-sm font-black">payments</span>
+                                                            {payingDebt === debt.id
+                                                                ? <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                                                                : <span className="material-symbols-outlined text-sm font-black">payments</span>
+                                                            }
                                                             Procesar Cobro
                                                         </Button>
                                                     </div>
@@ -387,14 +412,67 @@ export function CustomerDetailsModal({ customer, isOpen, onClose, onUpdate }: Cu
                     </div>
 
                     <div className="p-10 pt-4 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Sistema de Control de Cartera • Última actualización: {new Date().toLocaleDateString()}</p>
                         <Button
-                            onClick={onClose}
-                            className="h-14 px-12 bg-slate-900 hover:bg-black text-white rounded-2xl font-black uppercase italic tracking-widest text-[10px] shadow-2xl transition-all flex items-center justify-center gap-3 active:scale-95"
+                            onClick={() => { setDeleteOpen(true); setDeleteConfirmName("") }}
+                            className="h-12 px-6 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-2xl font-black uppercase italic tracking-widest text-[10px] transition-all flex items-center gap-2 active:scale-95"
                         >
-                            Cerrar Expediente
+                            <span className="material-symbols-outlined text-sm">person_remove</span>
+                            Eliminar Cliente
                         </Button>
+                        <div className="flex items-center gap-4">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 hidden sm:block">Última actualización: {new Date().toLocaleDateString()}</p>
+                            <Button
+                                onClick={onClose}
+                                className="h-14 px-12 bg-slate-900 hover:bg-black text-white rounded-2xl font-black uppercase italic tracking-widest text-[10px] shadow-2xl transition-all flex items-center justify-center gap-3 active:scale-95"
+                            >
+                                Cerrar Expediente
+                            </Button>
+                        </div>
                     </div>
+
+                    {/* Delete confirmation dialog */}
+                    {deleteOpen && (
+                        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-6 rounded-[40px]">
+                            <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 w-full max-w-sm shadow-2xl border-2 border-rose-200 dark:border-rose-900/40 space-y-5">
+                                <div className="flex items-center gap-3">
+                                    <div className="size-12 rounded-2xl bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center text-rose-600">
+                                        <span className="material-symbols-outlined text-2xl">warning</span>
+                                    </div>
+                                    <div>
+                                        <h3 className="font-black uppercase italic tracking-tight text-slate-900 dark:text-white leading-none">Eliminar Cliente</h3>
+                                        <p className="text-[10px] font-bold text-rose-500 uppercase tracking-widest mt-0.5">Acción irreversible</p>
+                                    </div>
+                                </div>
+                                <p className="text-sm text-slate-500 dark:text-slate-400">
+                                    Para confirmar, escribe el nombre del cliente:
+                                    <span className="font-black text-slate-900 dark:text-white block mt-1">"{customer.name}"</span>
+                                </p>
+                                <input
+                                    autoFocus
+                                    className="w-full p-3 bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold outline-none focus:border-rose-500 transition-all"
+                                    placeholder="Escribe el nombre exacto..."
+                                    value={deleteConfirmName}
+                                    onChange={e => setDeleteConfirmName(e.target.value)}
+                                    onKeyDown={e => e.key === 'Enter' && handleDeleteCustomer()}
+                                />
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={() => setDeleteOpen(false)}
+                                        className="flex-1 py-3 text-slate-500 font-bold uppercase tracking-widest text-xs hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        onClick={handleDeleteCustomer}
+                                        disabled={deleting || deleteConfirmName.trim().toLowerCase() !== customer.name.trim().toLowerCase()}
+                                        className="flex-1 py-3 bg-rose-600 text-white font-black uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-rose-500/20 transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:bg-rose-700 active:scale-95"
+                                    >
+                                        {deleting ? 'Eliminando...' : 'Confirmar'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </DialogContent>
         </Dialog>

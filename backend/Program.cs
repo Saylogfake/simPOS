@@ -111,6 +111,24 @@ using (var scope = app.Services.CreateScope())
         // Migrations manuales: agregar columnas nuevas si no existen
         var columnMigrations = new[]
         {
+            // Tablas nuevas
+            @"CREATE TABLE IF NOT EXISTS ""CustomerDebts"" (
+                ""Id"" uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+                ""CustomerId"" uuid NOT NULL,
+                ""Amount"" numeric(12,2) NOT NULL,
+                ""PaidAmount"" numeric(12,2) NOT NULL DEFAULT 0,
+                ""DueDate"" timestamp NOT NULL,
+                ""Status"" text NOT NULL DEFAULT 'PENDING',
+                ""CreatedAt"" timestamp NOT NULL DEFAULT now()
+            );",
+            @"CREATE TABLE IF NOT EXISTS ""DebtPayments"" (
+                ""Id"" uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+                ""CustomerDebtId"" uuid NOT NULL,
+                ""Amount"" numeric(12,2) NOT NULL,
+                ""PaymentMethod"" text NOT NULL,
+                ""CashRegisterId"" uuid NOT NULL,
+                ""CreatedAt"" timestamp NOT NULL DEFAULT now()
+            );",
             @"ALTER TABLE ""Products"" ADD COLUMN IF NOT EXISTS ""TenantId"" uuid NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000';",
             @"ALTER TABLE ""Customers"" ADD COLUMN IF NOT EXISTS ""DocumentId"" text NULL;",
             @"ALTER TABLE ""Customers"" ADD COLUMN IF NOT EXISTS ""BirthDate"" timestamp NULL;",
