@@ -432,12 +432,14 @@ export default function POSClient() {
                                     ) : null}
                                     {/* Fallback block */}
                                     <div
-                                        className="w-full aspect-square bg-gradient-to-br from-primary/10 to-primary/5 items-center justify-center"
+                                        className="w-full aspect-square bg-slate-100 dark:bg-slate-800 items-center justify-center overflow-hidden"
                                         style={{ display: product.imageUrl ? 'none' : 'flex' }}
                                     >
-                                        <span className="text-primary font-black text-xl uppercase opacity-30 leading-none select-none">
-                                            {product.name.substring(0, 2)}
-                                        </span>
+                                        <img
+                                            src="https://png.pngtree.com/png-vector/20190927/ourlarge/pngtree-cancel-cart-product-icon-png-image_1736147.jpg"
+                                            alt="Sin imagen"
+                                            className="w-full h-full object-cover opacity-30"
+                                        />
                                     </div>
 
                                     {hasDiscount && (
