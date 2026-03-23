@@ -55,9 +55,9 @@ namespace SaasPos.Backend.Services
             var debt = await _context.CustomerDebts.FindAsync(debtId);
             if (debt == null) throw new Exception("Deuda no encontrada");
 
-            if (debt.PaidAmount + amount > debt.Amount)
+            if (debt.PaidAmount + amount > debt.Amount + 0.01m)
             {
-                throw new Exception("El monto excede el saldo pendiente de la deuda");
+                throw new Exception($"El monto excede el saldo pendiente ({debt.Amount - debt.PaidAmount:F0})");
             }
 
             // check cash register
@@ -79,14 +79,7 @@ namespace SaasPos.Backend.Services
 
             // Update debt
             debt.PaidAmount += amount;
-            if (debt.PaidAmount >= debt.Amount)
-            {
-                debt.Status = "PAID";
-            }
-            else
-            {
-                debt.Status = "PARTIAL";
-            }
+            debt.Status = debt.PaidAmount >= debt.Amount - 0.01m ? "PAID" : "PARTIAL";
 
             // Update customer balance
             var customer = await _context.Customers.FindAsync(debt.CustomerId);

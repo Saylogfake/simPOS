@@ -24,6 +24,7 @@ type Debt = {
     dueDate: string
     status: string
     createdAt: string
+    payments: { id: string; amount: number; paymentMethod: string; createdAt: string }[]
 }
 
 interface CustomerDetailsModalProps {
@@ -332,11 +333,22 @@ export function CustomerDetailsModal({ customer, isOpen, onClose, onUpdate }: Cu
                                                     </div>
                                                 </div>
 
-                                                <div className="flex gap-4 items-center bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+                                                <div className="flex gap-4 items-end bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
                                                     <div className="flex-1 space-y-2">
-                                                        <label className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-400 px-1">Monto a Cobrar</label>
+                                                        <div className="flex items-center justify-between px-1">
+                                                            <label className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-400">Monto a Cobrar</label>
+                                                            <button
+                                                                onClick={() => setPayAmount(prev => ({ ...prev, [debt.id]: String(debt.amount - debt.paidAmount) }))}
+                                                                className="text-[8px] font-black uppercase tracking-widest text-primary hover:underline"
+                                                            >
+                                                                Pagar todo
+                                                            </button>
+                                                        </div>
                                                         <input
                                                             type="number"
+                                                            min="1"
+                                                            step="1"
+                                                            max={debt.amount - debt.paidAmount}
                                                             placeholder="0"
                                                             value={payAmount[debt.id] || ""}
                                                             onChange={e => setPayAmount(prev => ({ ...prev, [debt.id]: e.target.value }))}
@@ -356,7 +368,7 @@ export function CustomerDetailsModal({ customer, isOpen, onClose, onUpdate }: Cu
                                                             </SelectContent>
                                                         </Select>
                                                     </div>
-                                                    <div className="pt-6">
+                                                    <div>
                                                         <Button 
                                                             onClick={() => handlePayDebt(debt.id)} 
                                                             disabled={!registerId || !payAmount[debt.id] || payingDebt === debt.id}
@@ -387,25 +399,49 @@ export function CustomerDetailsModal({ customer, isOpen, onClose, onUpdate }: Cu
                                 </TabsContent>
 
                                 <TabsContent value="history" className="space-y-4 outline-none">
-                                    <div className="space-y-3">
-                                        {debts.filter(d => d.status === 'PAID').map(debt => (
-                                            <div key={debt.id} className="group p-5 bg-emerald-50/30 dark:bg-emerald-900/10 rounded-3xl border-2 border-emerald-100 dark:border-emerald-900/30 flex justify-between items-center hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="size-10 rounded-xl bg-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
-                                                        <span className="material-symbols-outlined text-xl font-black">verified</span>
-                                                    </div>
-                                                    <div>
-                                                        <div className="font-black italic tracking-tighter uppercase text-slate-900 dark:text-white leading-none">Venta Saldada #{debt.id.substring(0, 8)}</div>
-                                                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Saldado el: {new Date(debt.createdAt).toLocaleDateString()}</div>
-                                                    </div>
-                                                </div>
-                                                <div className="text-right flex flex-col items-end gap-1">
-                                                    <span className="text-xl font-black italic tracking-tighter text-emerald-600 leading-none">{formatMoney(debt.amount)}</span>
-                                                    <Badge variant="outline" className="rounded-full border-emerald-500 text-emerald-500 text-[8px] font-black px-3 py-0">COMPLETADO</Badge>
-                                                </div>
+                                    {(() => {
+                                        const allPayments = debts
+                                            .flatMap(d => (d.payments || []).map(p => ({ ...p, debtId: d.id, debtAmount: d.amount })))
+                                            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
+                                        if (allPayments.length === 0) return (
+                                            <div className="h-64 flex flex-col items-center justify-center text-center p-10 bg-slate-50 dark:bg-slate-900/50 rounded-[40px] border-4 border-dashed border-slate-100 dark:border-slate-800 opacity-60">
+                                                <span className="material-symbols-outlined text-7xl text-slate-300">receipt_long</span>
+                                                <p className="font-black italic uppercase tracking-widest text-slate-400 mt-4">Sin pagos registrados</p>
                                             </div>
-                                        ))}
-                                    </div>
+                                        )
+
+                                        const methodLabel: Record<string, string> = { CASH: "Efectivo 💵", CARD: "Tarjeta 💳", QR: "QR 📱" }
+
+                                        return (
+                                            <div className="space-y-3">
+                                                {allPayments.map(p => (
+                                                    <div key={p.id} className="p-5 bg-emerald-50/30 dark:bg-emerald-900/10 rounded-3xl border-2 border-emerald-100 dark:border-emerald-900/30 flex justify-between items-center hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all">
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="size-10 rounded-xl bg-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+                                                                <span className="material-symbols-outlined text-xl">payments</span>
+                                                            </div>
+                                                            <div>
+                                                                <div className="font-black italic tracking-tighter uppercase text-slate-900 dark:text-white leading-none">
+                                                                    Pago #{p.id.substring(0, 8)}
+                                                                </div>
+                                                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                                                                    {new Date(p.createdAt).toLocaleDateString()} · {methodLabel[p.paymentMethod] ?? p.paymentMethod}
+                                                                </div>
+                                                                <div className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">
+                                                                    Deuda #{p.debtId.substring(0, 8)}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-right flex flex-col items-end gap-1">
+                                                            <span className="text-xl font-black italic tracking-tighter text-emerald-600 leading-none">{formatMoney(p.amount)}</span>
+                                                            <Badge variant="outline" className="rounded-full border-emerald-500 text-emerald-500 text-[8px] font-black px-3 py-0">COBRADO</Badge>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )
+                                    })()}
                                 </TabsContent>
                             </Tabs>
                         </div>
