@@ -121,7 +121,7 @@ export default function LoginPage() {
 
                 {/* Footer */}
                 <div className="relative z-10">
-                    <p className="text-slate-600 text-xs font-bold uppercase tracking-widest">v2.1.0 &bull; Retail Management System</p>
+                    <p className="text-slate-600 text-xs font-bold uppercase tracking-widest">v1.0 &bull; Inventory Management System</p>
                 </div>
             </div>
 
@@ -132,7 +132,7 @@ export default function LoginPage() {
                     <div className="size-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/30">
                         <span className="material-symbols-outlined text-white text-xl">point_of_sale</span>
                     </div>
-                    <span className="text-white font-black text-xl tracking-tight">SaaS<span className="text-primary">POS</span></span>
+                    <span className="text-white font-black text-xl tracking-tight">Nex<span className="text-primary">POS</span></span>
                 </div>
 
                 <div className="w-full max-w-sm space-y-8">
