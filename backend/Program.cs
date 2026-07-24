@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using SaasPos.Backend.Data;
+using SaasPos.Backend.Middleware;
 using SaasPos.Backend.Services;
 using System.Text;
 
@@ -19,6 +20,7 @@ builder.Services.AddControllers(options =>
         .Build();
     options.Filters.Add(new AuthorizeFilter(policy));
 });
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -128,6 +130,10 @@ builder.Services.AddScoped<DebtService>();
 builder.Services.AddHttpClient<FactPyService>();
 builder.Services.Configure<FactPyOptions>(builder.Configuration.GetSection("FactPy"));
 
+// Rate limiting & account lockout (in-memory)
+builder.Services.AddSingleton<RateLimitingService>();
+builder.Services.AddSingleton<AccountLockoutService>();
+
 var app = builder.Build();
 
 // Migrate on Startup
@@ -139,6 +145,13 @@ using (var scope = app.Services.CreateScope())
         var db = serviceProvider.GetRequiredService<AppDbContext>();
         db.Database.EnsureCreated();
         Console.WriteLine("Database initialized successfully.");
+
+        // NOTE: The raw SQL migrations below are a temporary solution for schema evolution.
+        // TODO: Replace with proper EF Core migrations by running:
+        //   dotnet ef migrations add InitialCreate --project backend
+        //   dotnet ef migrations add <MigrationName> --project backend
+        // Then replace EnsureCreated() with db.Database.Migrate() above.
+        // The raw SQL migrations below should be removed once EF Core migrations are in place.
 
         // Migrations manuales: agregar columnas nuevas si no existen
         var columnMigrations = new[]
@@ -329,6 +342,22 @@ using (var scope = app.Services.CreateScope())
             }
             catch (Exception colEx) { Console.WriteLine($"FrameLensRules migration skipped: {colEx.Message}"); }
 
+            // Migración: tabla ProductBarcodes (códigos de barras múltiples por producto)
+            try
+            {
+                db.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS ""ProductBarcodes"" (
+                    ""Id"" uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+                    ""ProductId"" uuid NOT NULL,
+                    ""Barcode"" text NOT NULL DEFAULT '',
+                    ""Description"" text NULL,
+                    ""IsActive"" boolean NOT NULL DEFAULT true,
+                    ""CreatedAt"" timestamp NOT NULL DEFAULT now(),
+                    CONSTRAINT ""FK_ProductBarcodes_Products"" FOREIGN KEY (""ProductId"") REFERENCES ""Products""(""Id"") ON DELETE CASCADE
+                );");
+                Console.WriteLine("ProductBarcodes table created.");
+            }
+            catch (Exception colEx) { Console.WriteLine($"ProductBarcodes migration skipped: {colEx.Message}"); }
+
             // Migración: CustomName en SaleItem
             try
             {
@@ -444,6 +473,8 @@ using (var scope = app.Services.CreateScope())
 
 // Config Pipeline
 app.UseForwardedHeaders();
+
+app.UseMiddleware<SecurityHeadersMiddleware>();
 
 // Railway maneja HTTPS en el edge — no redirigir internamente o causa 308 loop
 if (app.Environment.IsDevelopment())

@@ -12,7 +12,7 @@ namespace SaasPos.Backend.Controllers
     public class OpticsSettingsController : ControllerBase
     {
         private readonly AppDbContext _context;
-        private Guid TenantId => Guid.Parse(User.FindFirst("TenantId")?.Value ?? "");
+        private Guid TenantId => Guid.Parse(User.FindFirst("tenant_id")?.Value ?? Guid.Empty.ToString());
 
         public OpticsSettingsController(AppDbContext context)
         {

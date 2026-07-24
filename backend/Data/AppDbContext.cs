@@ -5,7 +5,14 @@ namespace SaasPos.Backend.Data
 {
     public class AppDbContext : DbContext
     {
+        private readonly IHttpContextAccessor? _httpContextAccessor;
+
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+
+        public AppDbContext(DbContextOptions<AppDbContext> options, IHttpContextAccessor httpContextAccessor) : base(options)
+        {
+            _httpContextAccessor = httpContextAccessor;
+        }
 
         /// <summary>
         /// Seeds the database with initial roles, permissions, users, categories, and products.
@@ -28,57 +35,33 @@ namespace SaasPos.Backend.Data
             }
 
             var superadminRole = Roles.First(r => r.Name == "SUPERADMIN");
-            var adminRole      = Roles.First(r => r.Name == "ADMIN");
-            var managerRole    = Roles.First(r => r.Name == "MANAGER");
-            var cashierRole    = Roles.First(r => r.Name == "CAJERO");
-            var viewerRole     = Roles.First(r => r.Name == "VIEWER");
+            var adminRole = Roles.First(r => r.Name == "ADMIN");
+            var managerRole = Roles.First(r => r.Name == "MANAGER");
+            var cashierRole = Roles.First(r => r.Name == "CAJERO");
+            var viewerRole = Roles.First(r => r.Name == "VIEWER");
 
-            // ── Tenant ───────────────────────────────────────────────────────────
-            if (!Tenants.Any(t => t.Slug == "demo"))
-            {
-                Tenants.Add(new Tenant
-                {
-                    Name     = "Negocio Demo",
-                    Slug     = "demo",
-                    Email    = "demo@saaspos.com",
-                    BusinessType = "TIENDA",
-                    IsActive = true
-                });
-                SaveChanges();
-            }
-
-            var tenantId = Tenants.First(t => t.Slug == "demo").Id;
-
-            // ── Permissions ──────────────────────────────────────────────────────
+            // ── Permissions ────────────────────────────────────────────────────────
             var permissionDefs = new[]
             {
-                // Products / Inventory
+                // Products
                 ("PRODUCT_CREATE",    "Create Products"),
-                ("PRODUCT_READ",      "Read Products"),
-                ("PRODUCT_UPDATE",    "Update Products"),
+                ("PRODUCT_READ",      "View Products"),
+                ("PRODUCT_UPDATE",    "Edit Products"),
                 ("PRODUCT_DELETE",    "Delete Products"),
                 // Sales
                 ("SALE_CREATE",       "Create Sales"),
-                ("SALE_READ",         "Read Sales"),
-                ("SALE_UPDATE",       "Update Sales"),
-                ("SALE_DELETE",       "Delete Sales"),
-                // Users
-                ("USER_CREATE",       "Create Users"),
-                ("USER_READ",         "Read Users"),
-                ("USER_UPDATE",       "Update Users"),
-                ("USER_DELETE",       "Delete Users"),
+                ("SALE_READ",         "View Sales"),
+                ("SALE_UPDATE",       "Edit Sales"),
                 // Categories
                 ("CATEGORY_CREATE",   "Create Categories"),
-                ("CATEGORY_READ",     "Read Categories"),
-                ("CATEGORY_UPDATE",   "Update Categories"),
-                ("CATEGORY_DELETE",   "Delete Categories"),
+                ("CATEGORY_READ",     "View Categories"),
+                ("CATEGORY_UPDATE",   "Edit Categories"),
                 // Customers
                 ("CUSTOMER_CREATE",   "Create Customers"),
-                ("CUSTOMER_READ",     "Read Customers"),
-                ("CUSTOMER_UPDATE",   "Update Customers"),
-                ("CUSTOMER_DELETE",   "Delete Customers"),
-                // Cash register
-                ("CASH_OPEN_CLOSE",   "Open / Close Cash Register"),
+                ("CUSTOMER_READ",     "View Customers"),
+                ("CUSTOMER_UPDATE",   "Edit Customers"),
+                // Cash
+                ("CASH_OPEN_CLOSE",   "Open/Close Register"),
                 ("CASH_MOVEMENT",     "Register Cash Movements"),
                 // Reports & roles
                 ("REPORT_VIEW",       "View Reports"),
@@ -393,6 +376,7 @@ namespace SaasPos.Backend.Data
         public DbSet<OpticalQuote> OpticalQuotes { get; set; }
         public DbSet<PromotionalRule> PromotionalRules { get; set; }
         public DbSet<FrameLensRule> FrameLensRules { get; set; }
+        public DbSet<ProductBarcode> ProductBarcodes { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -401,6 +385,98 @@ namespace SaasPos.Backend.Data
             // Composite Key for RolePermission
             modelBuilder.Entity<RolePermission>()
                 .HasKey(rp => new { rp.RoleId, rp.PermissionId });
+
+            // Optimistic concurrency for Product (RowVersion is configured via [Timestamp] attribute)
+            modelBuilder.Entity<Product>()
+                .Property(p => p.RowVersion)
+                .IsRowVersion();
+
+            // Global query filter for multi-tenant isolation
+            // This automatically filters all queries by TenantId when HttpContext has tenant_id claim
+            modelBuilder.Entity<Product>().HasQueryFilter(p =>
+                _httpContextAccessor == null
+                    || _httpContextAccessor.HttpContext == null
+                    || !_httpContextAccessor.HttpContext.User.HasClaim(c => c.Type == "tenant_id")
+                    || p.TenantId == Guid.Parse(_httpContextAccessor.HttpContext.User.FindFirst("tenant_id")!.Value));
+
+            modelBuilder.Entity<Category>().HasQueryFilter(c =>
+                _httpContextAccessor == null
+                    || _httpContextAccessor.HttpContext == null
+                    || !_httpContextAccessor.HttpContext.User.HasClaim(c => c.Type == "tenant_id")
+                    || c.TenantId == Guid.Parse(_httpContextAccessor.HttpContext.User.FindFirst("tenant_id")!.Value));
+
+            modelBuilder.Entity<Sale>().HasQueryFilter(s =>
+                _httpContextAccessor == null
+                    || _httpContextAccessor.HttpContext == null
+                    || !_httpContextAccessor.HttpContext.User.HasClaim(c => c.Type == "tenant_id")
+                    || s.TenantId == Guid.Parse(_httpContextAccessor.HttpContext.User.FindFirst("tenant_id")!.Value));
+
+            modelBuilder.Entity<Customer>().HasQueryFilter(c =>
+                _httpContextAccessor == null
+                    || _httpContextAccessor.HttpContext == null
+                    || !_httpContextAccessor.HttpContext.User.HasClaim(c => c.Type == "tenant_id")
+                    || c.TenantId == Guid.Parse(_httpContextAccessor.HttpContext.User.FindFirst("tenant_id")!.Value));
+
+            modelBuilder.Entity<CashRegister>().HasQueryFilter(cr =>
+                _httpContextAccessor == null
+                    || _httpContextAccessor.HttpContext == null
+                    || !_httpContextAccessor.HttpContext.User.HasClaim(c => c.Type == "tenant_id")
+                    || cr.TenantId == Guid.Parse(_httpContextAccessor.HttpContext.User.FindFirst("tenant_id")!.Value));
+
+            modelBuilder.Entity<Notification>().HasQueryFilter(n =>
+                _httpContextAccessor == null
+                    || _httpContextAccessor.HttpContext == null
+                    || !_httpContextAccessor.HttpContext.User.HasClaim(c => c.Type == "tenant_id")
+                    || n.TenantId == null
+                    || n.TenantId == Guid.Parse(_httpContextAccessor.HttpContext.User.FindFirst("tenant_id")!.Value));
+
+            modelBuilder.Entity<LensType>().HasQueryFilter(l =>
+                _httpContextAccessor == null
+                    || _httpContextAccessor.HttpContext == null
+                    || !_httpContextAccessor.HttpContext.User.HasClaim(c => c.Type == "tenant_id")
+                    || l.TenantId == Guid.Parse(_httpContextAccessor.HttpContext.User.FindFirst("tenant_id")!.Value));
+
+            modelBuilder.Entity<LensIndex>().HasQueryFilter(l =>
+                _httpContextAccessor == null
+                    || _httpContextAccessor.HttpContext == null
+                    || !_httpContextAccessor.HttpContext.User.HasClaim(c => c.Type == "tenant_id")
+                    || l.TenantId == Guid.Parse(_httpContextAccessor.HttpContext.User.FindFirst("tenant_id")!.Value));
+
+            modelBuilder.Entity<LensExtra>().HasQueryFilter(l =>
+                _httpContextAccessor == null
+                    || _httpContextAccessor.HttpContext == null
+                    || !_httpContextAccessor.HttpContext.User.HasClaim(c => c.Type == "tenant_id")
+                    || l.TenantId == Guid.Parse(_httpContextAccessor.HttpContext.User.FindFirst("tenant_id")!.Value));
+
+            modelBuilder.Entity<GraduationRange>().HasQueryFilter(g =>
+                _httpContextAccessor == null
+                    || _httpContextAccessor.HttpContext == null
+                    || !_httpContextAccessor.HttpContext.User.HasClaim(c => c.Type == "tenant_id")
+                    || g.TenantId == Guid.Parse(_httpContextAccessor.HttpContext.User.FindFirst("tenant_id")!.Value));
+
+            modelBuilder.Entity<OpticalPrescription>().HasQueryFilter(o =>
+                _httpContextAccessor == null
+                    || _httpContextAccessor.HttpContext == null
+                    || !_httpContextAccessor.HttpContext.User.HasClaim(c => c.Type == "tenant_id")
+                    || o.TenantId == Guid.Parse(_httpContextAccessor.HttpContext.User.FindFirst("tenant_id")!.Value));
+
+            modelBuilder.Entity<OpticalQuote>().HasQueryFilter(o =>
+                _httpContextAccessor == null
+                    || _httpContextAccessor.HttpContext == null
+                    || !_httpContextAccessor.HttpContext.User.HasClaim(c => c.Type == "tenant_id")
+                    || o.TenantId == Guid.Parse(_httpContextAccessor.HttpContext.User.FindFirst("tenant_id")!.Value));
+
+            modelBuilder.Entity<PromotionalRule>().HasQueryFilter(p =>
+                _httpContextAccessor == null
+                    || _httpContextAccessor.HttpContext == null
+                    || !_httpContextAccessor.HttpContext.User.HasClaim(c => c.Type == "tenant_id")
+                    || p.TenantId == Guid.Parse(_httpContextAccessor.HttpContext.User.FindFirst("tenant_id")!.Value));
+
+            modelBuilder.Entity<FrameLensRule>().HasQueryFilter(f =>
+                _httpContextAccessor == null
+                    || _httpContextAccessor.HttpContext == null
+                    || !_httpContextAccessor.HttpContext.User.HasClaim(c => c.Type == "tenant_id")
+                    || f.TenantId == Guid.Parse(_httpContextAccessor.HttpContext.User.FindFirst("tenant_id")!.Value));
 
             // Decimals
             modelBuilder.Entity<Product>().Property(p => p.Price).HasColumnType("decimal(10,2)");

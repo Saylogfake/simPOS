@@ -15,6 +15,7 @@ type Product = {
     name: string
     internalCode: string
     barcode: string
+    barcodes?: { id: string; barcode: string; description: string }[]
     price: number
     cost: number
     stock: number
@@ -48,7 +49,7 @@ export function EditProductModal({ isOpen, onClose, onSuccess, product }: EditPr
     // Form State
     const [name, setName] = useState("")
     const [internalCode, setInternalCode] = useState("")
-    const [barcode, setBarcode] = useState("")
+    const [barcodes, setBarcodes] = useState<{ id?: string; barcode: string; description: string }[]>([])
     const [price, setPrice] = useState("")
     const [cost, setCost] = useState("")
     const [stock, setStock] = useState("")
@@ -72,7 +73,6 @@ export function EditProductModal({ isOpen, onClose, onSuccess, product }: EditPr
         if (product && isOpen) {
             setName(product.name || "")
             setInternalCode(product.internalCode || "")
-            setBarcode(product.barcode || "")
             setPrice(product.price?.toString() || "")
             setCost(product.cost?.toString() || "")
             setStock(product.stock?.toString() || "")
@@ -85,6 +85,7 @@ export function EditProductModal({ isOpen, onClose, onSuccess, product }: EditPr
             setWholesaleMinQty(product.wholesaleMinQty?.toString() || "")
             setExpirationDate(product.expirationDate ? product.expirationDate.split('T')[0] : "")
             setTrackStock(product.trackStock !== false)
+            fetchBarcodes(product.id)
         }
     }, [product, isOpen])
 
@@ -97,6 +98,21 @@ export function EditProductModal({ isOpen, onClose, onSuccess, product }: EditPr
             if (res.ok) {
                 const data = await res.json()
                 setCategories(data)
+            }
+        } catch (e) {
+            console.error(e)
+        }
+    }
+
+    const fetchBarcodes = async (productId: string) => {
+        try {
+            const token = localStorage.getItem("token")
+            const res = await fetch(`${API_URL}/api/products/${productId}/barcodes`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            })
+            if (res.ok) {
+                const data = await res.json()
+                setBarcodes(data.map((b: any) => ({ id: b.id, barcode: b.barcode, description: b.description || "" })))
             }
         } catch (e) {
             console.error(e)
@@ -125,10 +141,15 @@ export function EditProductModal({ isOpen, onClose, onSuccess, product }: EditPr
 
         setLoading(true)
         try {
+            const validBarcodes = barcodes.filter(b => b.barcode.trim() !== "")
             const payload = {
                 name,
                 internalCode,
-                barcode: barcode || null,
+                barcodes: validBarcodes.length > 0 ? validBarcodes.map(b => ({
+                    id: b.id || null,
+                    barcode: b.barcode.trim(),
+                    description: b.description.trim() || null
+                })) : [],
                 price: parsedPrice,
                 cost: parsedCost,
                 stock: parsedStock,
@@ -243,17 +264,6 @@ export function EditProductModal({ isOpen, onClose, onSuccess, product }: EditPr
                                         className="h-12 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl font-mono text-xs"
                                     />
                                 </div>
-                                <div className="md:col-span-2 space-y-2">
-                                    <Label className="text-[10px] font-black uppercase text-slate-400">Código de Barras</Label>
-                                    <div className="relative">
-                                        <Input 
-                                            value={barcode} 
-                                            onChange={e => setBarcode(e.target.value)} 
-                                            className="h-12 pl-12 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl font-mono text-xs"
-                                        />
-                                        <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">barcode_scanner</span>
-                                    </div>
-                                </div>
                                 <div className="space-y-2">
                                     <Label className="text-[10px] font-black uppercase text-slate-400">Vencimiento</Label>
                                     <Input 
@@ -263,6 +273,73 @@ export function EditProductModal({ isOpen, onClose, onSuccess, product }: EditPr
                                         className="h-12 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl font-bold"
                                     />
                                 </div>
+                            </div>
+                        </div>
+
+                        {/* Section: Barcodes */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.2em] flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-base">barcode</span>
+                                    Códigos de Barras
+                                    {barcodes.length > 0 && (
+                                        <span className="ml-2 px-2 py-0.5 bg-primary/10 text-primary rounded-full text-[10px] font-black">{barcodes.length}</span>
+                                    )}
+                                </h3>
+                                <button
+                                    type="button"
+                                    onClick={() => setBarcodes([...barcodes, { barcode: "", description: "" }])}
+                                    className="flex items-center gap-1 px-4 py-2 bg-primary/10 text-primary rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary/20 transition-all"
+                                >
+                                    <span className="material-symbols-outlined text-sm">add</span>
+                                    Agregar
+                                </button>
+                            </div>
+
+                            {barcodes.length === 0 && (
+                                <div className="p-6 bg-slate-50 dark:bg-slate-800/30 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 text-center">
+                                    <span className="material-symbols-outlined text-4xl text-slate-300 mb-2 block">barcode_scanner</span>
+                                    <p className="text-xs font-bold text-slate-400">Sin códigos de barras</p>
+                                </div>
+                            )}
+
+                            <div className="space-y-3">
+                                {barcodes.map((item, index) => (
+                                    <div key={index} className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-slate-100 dark:border-slate-800/50 group/bc">
+                                        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            <div className="relative">
+                                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">barcode_scanner</span>
+                                                <Input
+                                                    value={item.barcode}
+                                                    onChange={e => {
+                                                        const updated = [...barcodes]
+                                                        updated[index].barcode = e.target.value
+                                                        setBarcodes(updated)
+                                                    }}
+                                                    placeholder="Código..."
+                                                    className="h-10 pl-10 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-lg font-mono text-xs"
+                                                />
+                                            </div>
+                                            <Input
+                                                value={item.description}
+                                                onChange={e => {
+                                                    const updated = [...barcodes]
+                                                    updated[index].description = e.target.value
+                                                    setBarcodes(updated)
+                                                }}
+                                                placeholder="Descripción (Sabor, Color...)"
+                                                className="h-10 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-lg text-xs"
+                                            />
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setBarcodes(barcodes.filter((_, i) => i !== index))}
+                                            className="h-10 w-10 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all opacity-0 group-hover/bc:opacity-100"
+                                        >
+                                            <span className="material-symbols-outlined text-base">close</span>
+                                        </button>
+                                    </div>
+                                ))}
                             </div>
                         </div>
 

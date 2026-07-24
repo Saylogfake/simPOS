@@ -80,7 +80,12 @@ namespace SaasPos.Backend.Models
         public decimal WholesaleMinQty { get; set; }
         public bool TrackStock { get; set; } = true; // false = venta directa, no descuenta stock
 
+        // Optimistic concurrency
+        [Timestamp]
+        public byte[]? RowVersion { get; set; }
+
         public Category Category { get; set; }
+        public List<ProductBarcode> Barcodes { get; set; } = new();
     }
 
     public class Category 
@@ -345,5 +350,19 @@ namespace SaasPos.Backend.Models
         public bool SifenHabilitado { get; set; } = false;      // Si tiene SIFEN activo
         public string SifenAmbiente { get; set; } = "test";     // "test" | "prod"
         public int UltimoNumeroDe { get; set; } = 0;            // Último número de DE emitido (autoincremental)
+    }
+
+    public class ProductBarcode
+    {
+        [Key]
+        public Guid Id { get; set; } = Guid.NewGuid();
+        public Guid ProductId { get; set; }
+        public string Barcode { get; set; } = "";
+        public string? Description { get; set; }
+        public bool IsActive { get; set; } = true;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        [ForeignKey("ProductId")]
+        public Product Product { get; set; } = null!;
     }
 }

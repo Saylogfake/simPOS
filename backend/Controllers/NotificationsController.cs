@@ -16,7 +16,7 @@ namespace SaasPos.Backend.Controllers
         public NotificationsController(AppDbContext db) => _db = db;
 
         private Guid GetTenantId() =>
-            Guid.Parse(User.FindFirstValue("TenantId") ?? Guid.Empty.ToString());
+            Guid.Parse(User.FindFirstValue("tenant_id") ?? Guid.Empty.ToString());
 
         private string GetRole() =>
             User.FindFirstValue(ClaimTypes.Role) ?? "";

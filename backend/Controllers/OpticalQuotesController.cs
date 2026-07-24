@@ -13,8 +13,8 @@ namespace SaasPos.Backend.Controllers
     public class OpticalQuotesController : ControllerBase
     {
         private readonly AppDbContext _context;
-        private Guid TenantId => Guid.Parse(User.FindFirst("TenantId")?.Value ?? "");
-        private Guid UserId => Guid.Parse(User.FindFirst("UserId")?.Value ?? "");
+        private Guid TenantId => Guid.Parse(User.FindFirst("tenant_id")?.Value ?? Guid.Empty.ToString());
+        private Guid UserId => Guid.Parse(User.FindFirst("id")?.Value ?? Guid.Empty.ToString());
 
         public OpticalQuotesController(AppDbContext context)
         {

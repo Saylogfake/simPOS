@@ -29,7 +29,7 @@ namespace SaasPos.Backend.Controllers
             if (string.IsNullOrEmpty(tenantIdClaim) || !Guid.TryParse(tenantIdClaim, out var tenantId))
                 return Unauthorized();
 
-            var products = await _context.Products.Include(p => p.Category)
+            var products = await _context.Products.Include(p => p.Category).Include(p => p.Barcodes)
                 .Where(p => p.IsActive && p.TenantId == tenantId)
                 .OrderBy(p => p.Name)
                 .ToListAsync();
@@ -93,6 +93,20 @@ namespace SaasPos.Backend.Controllers
             _context.Products.Add(product);
             await _context.SaveChangesAsync();
 
+            // Save barcodes
+            if (dto.Barcodes != null && dto.Barcodes.Count > 0)
+            {
+                var barcodes = dto.Barcodes.Select(b => new ProductBarcode
+                {
+                    ProductId = product.Id,
+                    Barcode = b.Barcode,
+                    Description = b.Description,
+                    IsActive = true
+                }).ToList();
+                _context.ProductBarcodes.AddRange(barcodes);
+                await _context.SaveChangesAsync();
+            }
+
             return Ok(product);
         }
 
@@ -141,6 +155,37 @@ namespace SaasPos.Backend.Controllers
                 product.Status = dto.Status;
                 product.IsActive = dto.Status == "ACTIVE";
             } 
+
+            // Sync barcodes
+            if (dto.Barcodes != null)
+            {
+                var existingBarcodes = await _context.ProductBarcodes
+                    .Where(b => b.ProductId == id)
+                    .ToListAsync();
+
+                // Remove barcodes not in the new list
+                var incomingIds = dto.Barcodes.Where(b => b.Id.HasValue).Select(b => b.Id!.Value).ToHashSet();
+                var toRemove = existingBarcodes.Where(b => !incomingIds.Contains(b.Id)).ToList();
+                _context.ProductBarcodes.RemoveRange(toRemove);
+
+                // Update existing barcodes
+                foreach (var existing in existingBarcodes.Where(b => incomingIds.Contains(b.Id)))
+                {
+                    var incoming = dto.Barcodes.First(b => b.Id == existing.Id);
+                    existing.Barcode = incoming.Barcode;
+                    existing.Description = incoming.Description;
+                }
+
+                // Add new barcodes (no Id)
+                var newBarcodes = dto.Barcodes.Where(b => !b.Id.HasValue).Select(b => new ProductBarcode
+                {
+                    ProductId = id,
+                    Barcode = b.Barcode,
+                    Description = b.Description,
+                    IsActive = true
+                }).ToList();
+                _context.ProductBarcodes.AddRange(newBarcodes);
+            }
 
             await _context.SaveChangesAsync();
             return Ok(product);
@@ -267,6 +312,78 @@ namespace SaasPos.Backend.Controllers
             await _context.SaveChangesAsync();
             return Ok();
         }
+
+        // 8. Get Barcodes for a Product
+        [HttpGet("{id}/barcodes")]
+        public async Task<IActionResult> GetBarcodes(Guid id)
+        {
+            var tenantIdClaim = User.FindFirst("tenant_id")?.Value;
+            if (string.IsNullOrEmpty(tenantIdClaim) || !Guid.TryParse(tenantIdClaim, out var tenantId))
+                return Unauthorized();
+
+            var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == id && p.TenantId == tenantId);
+            if (product == null) return NotFound();
+
+            var barcodes = await _context.ProductBarcodes
+                .Where(b => b.ProductId == id && b.IsActive)
+                .OrderBy(b => b.CreatedAt)
+                .Select(b => new { b.Id, b.Barcode, b.Description, b.CreatedAt })
+                .ToListAsync();
+
+            return Ok(barcodes);
+        }
+
+        // 9. Add Barcode to Product
+        [HttpPost("{id}/barcodes")]
+        public async Task<IActionResult> AddBarcode(Guid id, [FromBody] ProductBarcodeDto dto)
+        {
+            var tenantIdClaim = User.FindFirst("tenant_id")?.Value;
+            if (string.IsNullOrEmpty(tenantIdClaim) || !Guid.TryParse(tenantIdClaim, out var tenantId))
+                return Unauthorized();
+
+            var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == id && p.TenantId == tenantId);
+            if (product == null) return NotFound();
+
+            if (string.IsNullOrWhiteSpace(dto.Barcode))
+                return BadRequest(new { message = "El código de barras es obligatorio" });
+
+            // Check duplicate barcode within the same product
+            if (await _context.ProductBarcodes.AnyAsync(b => b.ProductId == id && b.Barcode == dto.Barcode && b.IsActive))
+                return BadRequest(new { message = "Este código de barras ya existe para este producto" });
+
+            var barcode = new ProductBarcode
+            {
+                ProductId = id,
+                Barcode = dto.Barcode.Trim(),
+                Description = dto.Description?.Trim(),
+                IsActive = true
+            };
+            _context.ProductBarcodes.Add(barcode);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { barcode.Id, barcode.Barcode, barcode.Description, barcode.CreatedAt });
+        }
+
+        // 10. Delete Barcode from Product
+        [HttpDelete("{id}/barcodes/{barcodeId}")]
+        public async Task<IActionResult> DeleteBarcode(Guid id, Guid barcodeId)
+        {
+            var tenantIdClaim = User.FindFirst("tenant_id")?.Value;
+            if (string.IsNullOrEmpty(tenantIdClaim) || !Guid.TryParse(tenantIdClaim, out var tenantId))
+                return Unauthorized();
+
+            var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == id && p.TenantId == tenantId);
+            if (product == null) return NotFound();
+
+            var barcode = await _context.ProductBarcodes.FirstOrDefaultAsync(b => b.Id == barcodeId && b.ProductId == id);
+            if (barcode == null) return NotFound();
+
+            _context.ProductBarcodes.Remove(barcode);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Código de barras eliminado" });
+        }
+
         private Guid GetUserId()
         {
             var claim = User.FindFirst("id")?.Value;
@@ -280,6 +397,7 @@ namespace SaasPos.Backend.Controllers
         public string? Code { get; set; }
         [Required] public string InternalCode { get; set; }
         public string? Barcode { get; set; }
+        public List<ProductBarcodeDto>? Barcodes { get; set; }
         [Range(0.01, double.MaxValue, ErrorMessage = "El precio debe ser mayor a 0")]
         public decimal Price { get; set; }
         [Range(0, double.MaxValue, ErrorMessage = "El costo no puede ser negativo")]
@@ -298,6 +416,13 @@ namespace SaasPos.Backend.Controllers
         public decimal WholesaleMinQty { get; set; }
         public DateTime? ExpirationDate { get; set; }
         public bool TrackStock { get; set; } = true;
+    }
+
+    public class ProductBarcodeDto
+    {
+        public Guid? Id { get; set; }
+        [Required] public string Barcode { get; set; } = "";
+        public string? Description { get; set; }
     }
 
     public class StockUpdateDto

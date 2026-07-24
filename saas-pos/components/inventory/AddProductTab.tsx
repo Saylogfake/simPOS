@@ -21,7 +21,7 @@ export function AddProductTab({ onSuccess }: AddProductTabProps) {
     // Form State
     const [name, setName] = useState("")
     const [internalCode, setInternalCode] = useState("")
-    const [barcode, setBarcode] = useState("")
+    const [barcodes, setBarcodes] = useState<{ barcode: string; description: string }[]>([])
     const [price, setPrice] = useState("")
     const [cost, setCost] = useState("")
     const [stock, setStock] = useState("")
@@ -74,11 +74,15 @@ export function AddProductTab({ onSuccess }: AddProductTabProps) {
 
         setLoading(true)
         try {
+            const validBarcodes = barcodes.filter(b => b.barcode.trim() !== "")
             const payload = {
                 name,
                 code: internalCode,
                 internalCode,
-                barcode: barcode || null,
+                barcodes: validBarcodes.length > 0 ? validBarcodes.map(b => ({
+                    barcode: b.barcode.trim(),
+                    description: b.description.trim() || null
+                })) : null,
                 price: parsedPrice,
                 cost: parsedCost,
                 stock: parsedStock,
@@ -109,7 +113,7 @@ export function AddProductTab({ onSuccess }: AddProductTabProps) {
             // Clear Form
             setName("")
             setInternalCode("")
-            setBarcode("")
+            setBarcodes([])
             setPrice("")
             setCost("")
             setStock("")
@@ -214,27 +218,83 @@ export function AddProductTab({ onSuccess }: AddProductTabProps) {
                 {/* technical Details (8 cols) */}
                 <div className="lg:col-span-8 space-y-8">
                     {/* Identification Table Style */}
-                    <div className="bg-white dark:bg-slate-950 p-10 rounded-[40px] border-4 border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/20 grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div className="space-y-4">
-                            <label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 px-2 italic">Código Interno <span className="text-rose-500">*</span></label>
-                            <input
-                                value={internalCode}
-                                onChange={e => setInternalCode(e.target.value)}
-                                placeholder="EJ: 101"
-                                className="w-full h-16 bg-slate-50 dark:bg-slate-900 border-4 border-slate-100 dark:border-slate-800 rounded-2xl text-2xl font-black italic tracking-tighter text-slate-900 dark:text-white px-8 focus:border-primary transition-all outline-none font-mono"
-                            />
-                        </div>
-                        <div className="space-y-4">
-                            <label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 px-2 italic">Código de Barras</label>
-                            <div className="relative">
-                                <span className="absolute left-6 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-300 font-black">barcode_scanner</span>
+                    <div className="bg-white dark:bg-slate-950 p-10 rounded-[40px] border-4 border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/20 space-y-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-4">
+                                <label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 px-2 italic">Código Interno <span className="text-rose-500">*</span></label>
                                 <input
-                                    value={barcode}
-                                    onChange={e => setBarcode(e.target.value)}
-                                    placeholder="ESCANEE AHORA..."
-                                    className="w-full h-16 bg-slate-50 dark:bg-slate-900 border-4 border-slate-100 dark:border-slate-800 rounded-2xl text-2xl font-black italic tracking-tighter text-slate-900 dark:text-white pl-16 pr-8 focus:border-primary transition-all outline-none font-mono"
+                                    value={internalCode}
+                                    onChange={e => setInternalCode(e.target.value)}
+                                    placeholder="EJ: 101"
+                                    className="w-full h-16 bg-slate-50 dark:bg-slate-900 border-4 border-slate-100 dark:border-slate-800 rounded-2xl text-2xl font-black italic tracking-tighter text-slate-900 dark:text-white px-8 focus:border-primary transition-all outline-none font-mono"
                                 />
                             </div>
+                        </div>
+
+                        {/* Códigos de Barras Múltiples */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 px-2 italic flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-sm">barcode</span>
+                                    Códigos de Barras
+                                    {barcodes.length > 0 && (
+                                        <span className="ml-2 px-2 py-0.5 bg-primary/10 text-primary rounded-full text-[10px] font-black">{barcodes.length}</span>
+                                    )}
+                                </label>
+                                <button
+                                    type="button"
+                                    onClick={() => setBarcodes([...barcodes, { barcode: "", description: "" }])}
+                                    className="flex items-center gap-1 px-4 py-2 bg-primary/10 text-primary rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary/20 transition-all"
+                                >
+                                    <span className="material-symbols-outlined text-sm">add</span>
+                                    Agregar
+                                </button>
+                            </div>
+
+                            {barcodes.length === 0 && (
+                                <div className="p-6 bg-slate-50 dark:bg-slate-900 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800 text-center">
+                                    <span className="material-symbols-outlined text-4xl text-slate-300 mb-2 block">barcode_scanner</span>
+                                    <p className="text-xs font-bold text-slate-400">Sin códigos de barras registrados</p>
+                                    <p className="text-[10px] text-slate-300 mt-1">Haga clic en "Agregar" para registrar uno</p>
+                                </div>
+                            )}
+
+                            {barcodes.map((item, index) => (
+                                <div key={index} className="flex items-start gap-3 p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl border-2 border-slate-100 dark:border-slate-800 group/barcode">
+                                    <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <div className="relative">
+                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-300 text-sm">barcode_scanner</span>
+                                            <input
+                                                value={item.barcode}
+                                                onChange={e => {
+                                                    const updated = [...barcodes]
+                                                    updated[index].barcode = e.target.value
+                                                    setBarcodes(updated)
+                                                }}
+                                                placeholder="Código de barras..."
+                                                className="w-full h-12 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl pl-12 pr-4 text-sm font-black font-mono text-slate-900 dark:text-white focus:border-primary transition-all outline-none"
+                                            />
+                                        </div>
+                                        <input
+                                            value={item.description}
+                                            onChange={e => {
+                                                const updated = [...barcodes]
+                                                updated[index].description = e.target.value
+                                                setBarcodes(updated)
+                                            }}
+                                            placeholder="Descripción (ej: Sabor Manzana, Color Rojo...)"
+                                            className="w-full h-12 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl px-4 text-xs font-bold text-slate-600 dark:text-slate-300 focus:border-primary transition-all outline-none"
+                                        />
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setBarcodes(barcodes.filter((_, i) => i !== index))}
+                                        className="h-12 w-12 flex items-center justify-center rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all opacity-0 group-hover/barcode:opacity-100"
+                                    >
+                                        <span className="material-symbols-outlined text-lg">delete</span>
+                                    </button>
+                                </div>
+                            ))}
                         </div>
                     </div>
 

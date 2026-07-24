@@ -218,10 +218,24 @@ namespace SaasPos.Backend.Controllers
             if (file == null || file.Length == 0)
                 return BadRequest(new { message = "Archivo no válido" });
 
+            const long maxSize = 5 * 1024 * 1024; // 5 MB
+            if (file.Length > maxSize)
+                return BadRequest(new { message = "El archivo no puede superar 5 MB" });
+
+            var allowedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                { ".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg" };
+            var ext = Path.GetExtension(file.FileName);
+            if (string.IsNullOrEmpty(ext) || !allowedExtensions.Contains(ext))
+                return BadRequest(new { message = "Tipo de archivo no permitido. Use: JPG, PNG, WEBP, GIF o SVG" });
+
+            var allowedContentTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                { "image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml" };
+            if (!string.IsNullOrEmpty(file.ContentType) && !allowedContentTypes.Contains(file.ContentType))
+                return BadRequest(new { message = "Tipo de contenido no permitido" });
+
             var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "logos");
             Directory.CreateDirectory(uploadsDir);
 
-            var ext = Path.GetExtension(file.FileName);
             var fileName = $"{tenant.Slug}-{Guid.NewGuid()}{ext}";
             var filePath = Path.Combine(uploadsDir, fileName);
 

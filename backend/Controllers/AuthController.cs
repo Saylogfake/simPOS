@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using SaasPos.Backend.Data;
+using SaasPos.Backend.Middleware;
 using SaasPos.Backend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.IdentityModel.Tokens.Jwt;
@@ -17,11 +18,16 @@ namespace SaasPos.Backend.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IConfiguration _configuration;
+        private readonly AccountLockoutService _lockout;
+        private readonly RateLimitingService _rateLimit;
 
-        public AuthController(AppDbContext context, IConfiguration configuration)
+        public AuthController(AppDbContext context, IConfiguration configuration,
+            AccountLockoutService lockout, RateLimitingService rateLimit)
         {
             _context = context;
             _configuration = configuration;
+            _lockout = lockout;
+            _rateLimit = rateLimit;
         }
 
         [AllowAnonymous]
@@ -33,13 +39,31 @@ namespace SaasPos.Backend.Controllers
                 return BadRequest(ModelState);
             }
 
+            // Rate limit per IP
+            var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            if (_rateLimit.IsLimited($"login:{clientIp}"))
+            {
+                var retryAfter = _rateLimit.GetRetryAfterSeconds($"login:{clientIp}");
+                return StatusCode(429, new { error = "Too many login attempts. Please try again later.", retryAfterSeconds = retryAfter });
+            }
+
+            // Account lockout check
+            if (_lockout.IsLockedOut(request.Email))
+            {
+                return StatusCode(423, new { error = "Account locked due to too many failed attempts. Please try again in 15 minutes." });
+            }
+
             var user = await _context.Users.Include(u => u.Role)
                 .FirstOrDefaultAsync(u => u.Email == request.Email);
 
             if (user == null || !user.IsActive || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             {
-                return Unauthorized(new { error = "Invalid credentials" });
+                _lockout.RecordFailedAttempt(request.Email);
+                var remaining = _lockout.GetRemainingAttempts(request.Email);
+                return Unauthorized(new { error = "Invalid credentials", remainingAttempts = remaining });
             }
+
+            _lockout.ResetAttempts(request.Email);
 
             var tokenHandler = new JwtSecurityTokenHandler();
             var jwtSecret = _configuration["JWT_SECRET"]
