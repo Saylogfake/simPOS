@@ -115,21 +115,15 @@ function openTextPrint(text: string) {
 <body><pre>${escapeHtml(text)}</pre></body>
 </html>`
 
-  const win = window.open('', '_blank', 'width=800,height=600,menubar=no,toolbar=no,location=no')
-  if (win) {
-    win.document.write(html)
-    win.document.close()
-    win.focus()
-    win.print()
-    return
-  }
-
   const iframe = document.createElement('iframe')
   iframe.style.position = 'fixed'
   iframe.style.top = '-9999px'
+  iframe.style.left = '-9999px'
   iframe.style.width = '700px'
   iframe.style.height = '600px'
+  iframe.style.border = 'none'
   document.body.appendChild(iframe)
+
   const doc = iframe.contentDocument || iframe.contentWindow?.document
   if (doc) {
     doc.open()
@@ -140,6 +134,8 @@ function openTextPrint(text: string) {
       iframe.contentWindow?.print()
       setTimeout(() => document.body.removeChild(iframe), 1000)
     }
+  } else {
+    document.body.removeChild(iframe)
   }
 }
 
