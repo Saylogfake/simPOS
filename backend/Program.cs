@@ -101,23 +101,16 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
-// CORS (Allow Frontend)
+// CORS — Dynamic: always reflect the Origin header so Railway deploys never break.
+// JWT Bearer auth (no cookies) means AllowAnyOrigin is safe here.
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowFrontend", policy =>
+    options.AddDefaultPolicy(policy =>
     {
-        var frontendUrl = builder.Configuration["FRONTEND_URL"];
-        if (string.IsNullOrWhiteSpace(frontendUrl))
-        {
-            Console.WriteLine("WARNING: FRONTEND_URL not set. Allowing all origins for development.");
-            policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
-            return;
-        }
-
-        var origins = frontendUrl.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        policy.WithOrigins(origins)
+        policy.SetIsOriginAllowed(_ => true)
               .AllowAnyMethod()
-              .AllowAnyHeader();
+              .AllowAnyHeader()
+              .SetPreflightMaxAge(TimeSpan.FromMinutes(10));
     });
 });
 
@@ -675,7 +668,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseStaticFiles();
-app.UseCors("AllowFrontend");
+app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 
