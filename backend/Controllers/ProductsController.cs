@@ -29,9 +29,39 @@ namespace SaasPos.Backend.Controllers
             if (string.IsNullOrEmpty(tenantIdClaim) || !Guid.TryParse(tenantIdClaim, out var tenantId))
                 return Unauthorized();
 
-            var products = await _context.Products.Include(p => p.Category).Include(p => p.Barcodes)
+            var products = await _context.Products.Include(p => p.Category)
                 .Where(p => p.IsActive && p.TenantId == tenantId)
                 .OrderBy(p => p.Name)
+                .Select(p => new
+                {
+                    p.Id,
+                    p.TenantId,
+                    p.Name,
+                    p.Code,
+                    p.Sku,
+                    p.InternalCode,
+                    p.Barcode,
+                    p.Price,
+                    p.Cost,
+                    p.Stock,
+                    p.MinStock,
+                    p.CategoryId,
+                    p.ImageUrl,
+                    p.IsActive,
+                    p.SaleType,
+                    p.DiscountPercentage,
+                    p.Status,
+                    p.IsPriority,
+                    p.ExpirationDate,
+                    p.IdealStock,
+                    p.WholesalePrice,
+                    p.WholesaleMinQty,
+                    p.TrackStock,
+                    p.CreatedAt,
+                    p.UpdatedAt,
+                    Category = p.Category != null ? new { p.Category.Id, p.Category.Name } : null,
+                    BarcodeCount = _context.ProductBarcodes.Count(b => b.ProductId == p.Id && b.IsActive)
+                })
                 .ToListAsync();
             
             return Ok(products);
