@@ -109,10 +109,13 @@ builder.Services.AddCors(options =>
         var frontendUrl = builder.Configuration["FRONTEND_URL"];
         if (string.IsNullOrWhiteSpace(frontendUrl))
         {
-            throw new InvalidOperationException("FRONTEND_URL must be configured. Set FRONTEND_URL in appsettings or environment variables.");
+            Console.WriteLine("WARNING: FRONTEND_URL not set. Allowing all origins for development.");
+            policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
+            return;
         }
 
-        policy.WithOrigins(frontendUrl)
+        var origins = frontendUrl.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        policy.WithOrigins(origins)
               .AllowAnyMethod()
               .AllowAnyHeader();
     });
