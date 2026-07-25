@@ -130,6 +130,24 @@ builder.Services.AddSingleton<AccountLockoutService>();
 
 var app = builder.Build();
 
+// Global exception handler — never return empty 500 bodies
+app.UseExceptionHandler(error =>
+{
+    error.Run(async context =>
+    {
+        var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
+        Console.WriteLine($"[GlobalException] {exception?.Message}\n{exception?.StackTrace}");
+        context.Response.StatusCode = 500;
+        context.Response.ContentType = "application/json";
+        var response = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            message = exception?.Message ?? "Error interno del servidor",
+            detail = app.Environment.IsDevelopment() ? exception?.StackTrace : null
+        });
+        await context.Response.WriteAsync(response);
+    });
+});
+
 // Migrate on Startup
 using (var scope = app.Services.CreateScope())
 {

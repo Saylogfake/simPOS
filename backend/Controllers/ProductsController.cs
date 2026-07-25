@@ -140,35 +140,57 @@ namespace SaasPos.Backend.Controllers
             product.WholesaleMinQty = dto.WholesaleMinQty;
             product.ExpirationDate = dto.ExpirationDate;
             product.TrackStock = dto.TrackStock;
-            // Stock IS NOT modified directly here for logging purposes.
-            // Check diff
-            var diff = dto.Stock - product.Stock;
-            if (diff != 0)
-            {
-            var userId = GetUserId();
-               await _inventory.AdjustStockAsync(product.Id, diff, "ADJUSTMENT", "Manual Edit", userId);
-               // Note: AdjustStockAsync updates the entity tracked by _context, so SaveChanges below persists it + the log.
-            } 
 
             if (!string.IsNullOrEmpty(dto.Status))
             {
                 product.Status = dto.Status;
                 product.IsActive = dto.Status == "ACTIVE";
-            } 
+            }
 
-            // Sync barcodes
+            var diff = dto.Stock - product.Stock;
+            if (diff != 0)
+            {
+                var userId = GetUserId();
+                var stockBefore = product.Stock;
+                product.Stock = dto.Stock;
+
+                _context.StockMovements.Add(new StockMovement
+                {
+                    ProductId = product.Id,
+                    Type = "ADJUSTMENT",
+                    Quantity = diff,
+                    StockBefore = stockBefore,
+                    StockAfter = dto.Stock,
+                    Reason = "Manual Edit",
+                    UserId = userId,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return Conflict(new { message = "Conflicto de concurrencia. Otro usuario modificó este producto. Recargue e intente nuevamente." });
+            }
+            catch (DbUpdateException ex)
+            {
+                Console.WriteLine($"[UpdateProduct] DbUpdateException: {ex.InnerException?.Message ?? ex.Message}");
+                return BadRequest(new { message = "Error al guardar. Verifique que la categoría exista y los datos sean válidos." });
+            }
+
             if (dto.Barcodes != null)
             {
                 var existingBarcodes = await _context.ProductBarcodes
                     .Where(b => b.ProductId == id)
                     .ToListAsync();
 
-                // Remove barcodes not in the new list
                 var incomingIds = dto.Barcodes.Where(b => b.Id.HasValue).Select(b => b.Id!.Value).ToHashSet();
                 var toRemove = existingBarcodes.Where(b => !incomingIds.Contains(b.Id)).ToList();
                 _context.ProductBarcodes.RemoveRange(toRemove);
 
-                // Update existing barcodes
                 foreach (var existing in existingBarcodes.Where(b => incomingIds.Contains(b.Id)))
                 {
                     var incoming = dto.Barcodes.First(b => b.Id == existing.Id);
@@ -176,7 +198,6 @@ namespace SaasPos.Backend.Controllers
                     existing.Description = incoming.Description;
                 }
 
-                // Add new barcodes (no Id)
                 var newBarcodes = dto.Barcodes.Where(b => !b.Id.HasValue).Select(b => new ProductBarcode
                 {
                     ProductId = id,
@@ -185,9 +206,17 @@ namespace SaasPos.Backend.Controllers
                     IsActive = true
                 }).ToList();
                 _context.ProductBarcodes.AddRange(newBarcodes);
+
+                try
+                {
+                    await _context.SaveChangesAsync();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[UpdateProduct] Barcode sync error: {ex.Message}");
+                }
             }
 
-            await _context.SaveChangesAsync();
             return Ok(product);
         }
 
