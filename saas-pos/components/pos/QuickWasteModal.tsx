@@ -19,6 +19,7 @@ type Product = {
     barcode: string
     stock: number
     saleType: string
+    barcodes?: { barcode: string }[]
 }
 
 export function QuickWasteModal({ isOpen, onClose, onSuccess }: QuickWasteModalProps) {

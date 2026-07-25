@@ -30,6 +30,7 @@ type Product = {
     saleType: "UNIT" | "WEIGHT"
     internalCode: string | null
     barcode: string | null
+    barcodes?: { barcode: string }[]
     stock: number
     discountPercentage: number
     wholesalePrice?: number
