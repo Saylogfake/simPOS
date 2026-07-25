@@ -400,91 +400,39 @@ namespace SaasPos.Backend.Data
                 .IsRowVersion();
 
             // Global query filter for multi-tenant isolation
-            // This automatically filters all queries by TenantId when HttpContext has tenant_id claim
-            modelBuilder.Entity<Product>().HasQueryFilter(p =>
-                _httpContextAccessor == null
-                    || _httpContextAccessor.HttpContext == null
-                    || !_httpContextAccessor.HttpContext.User.HasClaim(c => c.Type == "tenant_id")
-                    || p.TenantId == Guid.Parse(_httpContextAccessor.HttpContext.User.FindFirst("tenant_id")!.Value));
+            // Extract tenant_id ONCE as a closure variable — EF Core can translate
+            // a local Guid variable to SQL, but it CANNOT translate HasClaim() calls.
+            Guid? tenantId = null;
+            try
+            {
+                if (_httpContextAccessor?.HttpContext?.User.HasClaim(c => c.Type == "tenant_id") == true)
+                {
+                    var raw = _httpContextAccessor.HttpContext.User.FindFirst("tenant_id")?.Value;
+                    if (!string.IsNullOrEmpty(raw) && Guid.TryParse(raw, out var parsed))
+                        tenantId = parsed;
+                }
+            }
+            catch { /* No tenant context (e.g. during startup/seed) — leave null */ }
 
-            modelBuilder.Entity<Category>().HasQueryFilter(c =>
-                _httpContextAccessor == null
-                    || _httpContextAccessor.HttpContext == null
-                    || !_httpContextAccessor.HttpContext.User.HasClaim(c => c.Type == "tenant_id")
-                    || c.TenantId == Guid.Parse(_httpContextAccessor.HttpContext.User.FindFirst("tenant_id")!.Value));
+            if (tenantId.HasValue)
+            {
+                var tid = tenantId.Value;
 
-            modelBuilder.Entity<Sale>().HasQueryFilter(s =>
-                _httpContextAccessor == null
-                    || _httpContextAccessor.HttpContext == null
-                    || !_httpContextAccessor.HttpContext.User.HasClaim(c => c.Type == "tenant_id")
-                    || s.TenantId == Guid.Parse(_httpContextAccessor.HttpContext.User.FindFirst("tenant_id")!.Value));
-
-            modelBuilder.Entity<Customer>().HasQueryFilter(c =>
-                _httpContextAccessor == null
-                    || _httpContextAccessor.HttpContext == null
-                    || !_httpContextAccessor.HttpContext.User.HasClaim(c => c.Type == "tenant_id")
-                    || c.TenantId == Guid.Parse(_httpContextAccessor.HttpContext.User.FindFirst("tenant_id")!.Value));
-
-            modelBuilder.Entity<CashRegister>().HasQueryFilter(cr =>
-                _httpContextAccessor == null
-                    || _httpContextAccessor.HttpContext == null
-                    || !_httpContextAccessor.HttpContext.User.HasClaim(c => c.Type == "tenant_id")
-                    || cr.TenantId == Guid.Parse(_httpContextAccessor.HttpContext.User.FindFirst("tenant_id")!.Value));
-
-            modelBuilder.Entity<Notification>().HasQueryFilter(n =>
-                _httpContextAccessor == null
-                    || _httpContextAccessor.HttpContext == null
-                    || !_httpContextAccessor.HttpContext.User.HasClaim(c => c.Type == "tenant_id")
-                    || n.TenantId == null
-                    || n.TenantId == Guid.Parse(_httpContextAccessor.HttpContext.User.FindFirst("tenant_id")!.Value));
-
-            modelBuilder.Entity<LensType>().HasQueryFilter(l =>
-                _httpContextAccessor == null
-                    || _httpContextAccessor.HttpContext == null
-                    || !_httpContextAccessor.HttpContext.User.HasClaim(c => c.Type == "tenant_id")
-                    || l.TenantId == Guid.Parse(_httpContextAccessor.HttpContext.User.FindFirst("tenant_id")!.Value));
-
-            modelBuilder.Entity<LensIndex>().HasQueryFilter(l =>
-                _httpContextAccessor == null
-                    || _httpContextAccessor.HttpContext == null
-                    || !_httpContextAccessor.HttpContext.User.HasClaim(c => c.Type == "tenant_id")
-                    || l.TenantId == Guid.Parse(_httpContextAccessor.HttpContext.User.FindFirst("tenant_id")!.Value));
-
-            modelBuilder.Entity<LensExtra>().HasQueryFilter(l =>
-                _httpContextAccessor == null
-                    || _httpContextAccessor.HttpContext == null
-                    || !_httpContextAccessor.HttpContext.User.HasClaim(c => c.Type == "tenant_id")
-                    || l.TenantId == Guid.Parse(_httpContextAccessor.HttpContext.User.FindFirst("tenant_id")!.Value));
-
-            modelBuilder.Entity<GraduationRange>().HasQueryFilter(g =>
-                _httpContextAccessor == null
-                    || _httpContextAccessor.HttpContext == null
-                    || !_httpContextAccessor.HttpContext.User.HasClaim(c => c.Type == "tenant_id")
-                    || g.TenantId == Guid.Parse(_httpContextAccessor.HttpContext.User.FindFirst("tenant_id")!.Value));
-
-            modelBuilder.Entity<OpticalPrescription>().HasQueryFilter(o =>
-                _httpContextAccessor == null
-                    || _httpContextAccessor.HttpContext == null
-                    || !_httpContextAccessor.HttpContext.User.HasClaim(c => c.Type == "tenant_id")
-                    || o.TenantId == Guid.Parse(_httpContextAccessor.HttpContext.User.FindFirst("tenant_id")!.Value));
-
-            modelBuilder.Entity<OpticalQuote>().HasQueryFilter(o =>
-                _httpContextAccessor == null
-                    || _httpContextAccessor.HttpContext == null
-                    || !_httpContextAccessor.HttpContext.User.HasClaim(c => c.Type == "tenant_id")
-                    || o.TenantId == Guid.Parse(_httpContextAccessor.HttpContext.User.FindFirst("tenant_id")!.Value));
-
-            modelBuilder.Entity<PromotionalRule>().HasQueryFilter(p =>
-                _httpContextAccessor == null
-                    || _httpContextAccessor.HttpContext == null
-                    || !_httpContextAccessor.HttpContext.User.HasClaim(c => c.Type == "tenant_id")
-                    || p.TenantId == Guid.Parse(_httpContextAccessor.HttpContext.User.FindFirst("tenant_id")!.Value));
-
-            modelBuilder.Entity<FrameLensRule>().HasQueryFilter(f =>
-                _httpContextAccessor == null
-                    || _httpContextAccessor.HttpContext == null
-                    || !_httpContextAccessor.HttpContext.User.HasClaim(c => c.Type == "tenant_id")
-                    || f.TenantId == Guid.Parse(_httpContextAccessor.HttpContext.User.FindFirst("tenant_id")!.Value));
+                modelBuilder.Entity<Product>().HasQueryFilter(p => p.TenantId == tid);
+                modelBuilder.Entity<Category>().HasQueryFilter(c => c.TenantId == tid);
+                modelBuilder.Entity<Sale>().HasQueryFilter(s => s.TenantId == tid);
+                modelBuilder.Entity<Customer>().HasQueryFilter(c => c.TenantId == tid);
+                modelBuilder.Entity<CashRegister>().HasQueryFilter(cr => cr.TenantId == tid);
+                modelBuilder.Entity<Notification>().HasQueryFilter(n => n.TenantId == null || n.TenantId == tid);
+                modelBuilder.Entity<LensType>().HasQueryFilter(l => l.TenantId == tid);
+                modelBuilder.Entity<LensIndex>().HasQueryFilter(l => l.TenantId == tid);
+                modelBuilder.Entity<LensExtra>().HasQueryFilter(l => l.TenantId == tid);
+                modelBuilder.Entity<GraduationRange>().HasQueryFilter(g => g.TenantId == tid);
+                modelBuilder.Entity<OpticalPrescription>().HasQueryFilter(o => o.TenantId == tid);
+                modelBuilder.Entity<OpticalQuote>().HasQueryFilter(o => o.TenantId == tid);
+                modelBuilder.Entity<PromotionalRule>().HasQueryFilter(p => p.TenantId == tid);
+                modelBuilder.Entity<FrameLensRule>().HasQueryFilter(f => f.TenantId == tid);
+            }
 
             // Decimals
             modelBuilder.Entity<Product>().Property(p => p.Price).HasColumnType("decimal(10,2)");
