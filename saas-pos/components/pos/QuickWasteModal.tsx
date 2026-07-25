@@ -60,7 +60,8 @@ export function QuickWasteModal({ isOpen, onClose, onSuccess }: QuickWasteModalP
             const found = allProducts.find(p =>
                 p.internalCode === searchTerm ||
                 p.barcode === searchTerm ||
-                p.name.toLowerCase().includes(searchTerm.toLowerCase())
+                p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                p.barcodes?.some((b: any) => b.barcode === searchTerm)
             )
 
             if (found) {

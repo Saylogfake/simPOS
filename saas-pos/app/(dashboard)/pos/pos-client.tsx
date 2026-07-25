@@ -285,7 +285,10 @@ export default function POSClient() {
                 const qty = parseFloat(input.substring(1))
                 if (!isNaN(qty)) { setPendingMultiplier(qty); setManualInput(""); return; }
             }
-            const product = products.find(p => p.barcode === input || p.internalCode === input)
+            let product = products.find(p => p.barcode === input || p.internalCode === input)
+            if (!product) {
+                product = products.find(p => p.barcodes?.some((b: any) => b.barcode === input))
+            }
             if (product) initiateAddToCart(product)
             else if (filteredProducts.length === 1) initiateAddToCart(filteredProducts[0])
         }
@@ -299,7 +302,8 @@ export default function POSClient() {
         const matchesCategory = activeCategory === "all" || p.categoryId === activeCategory
         if (!manualInput || manualInput.startsWith("*")) return matchesCategory
         const term = manualInput.toLowerCase()
-        return matchesCategory && (p.name.toLowerCase().includes(term) || p.barcode?.includes(term) || p.internalCode?.includes(term))
+        const matchesBarcode = p.barcodes?.some((b: any) => b.barcode?.toLowerCase().includes(term))
+        return matchesCategory && (p.name.toLowerCase().includes(term) || p.barcode?.toLowerCase().includes(term) || p.internalCode?.toLowerCase().includes(term) || matchesBarcode)
     })
 
     const total = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0)
