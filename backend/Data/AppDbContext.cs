@@ -7,11 +7,23 @@ namespace SaasPos.Backend.Data
     {
         private readonly IHttpContextAccessor? _httpContextAccessor;
 
+        // Per-request tenant_id extracted from JWT claim.
+        // OnModelCreating runs ONCE and caches the model, but HasQueryFilter lambdas
+        // capture this field BY REFERENCE — so each scoped DbContext reads its own value at query time.
+        private Guid? _tenantId;
+
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
         public AppDbContext(DbContextOptions<AppDbContext> options, IHttpContextAccessor httpContextAccessor) : base(options)
         {
             _httpContextAccessor = httpContextAccessor;
+            try
+            {
+                var raw = httpContextAccessor.HttpContext?.User.FindFirst("tenant_id")?.Value;
+                if (!string.IsNullOrEmpty(raw) && Guid.TryParse(raw, out var parsed))
+                    _tenantId = parsed;
+            }
+            catch { /* startup / seed — no tenant context */ }
         }
 
         /// <summary>
@@ -400,39 +412,23 @@ namespace SaasPos.Backend.Data
                 .IsRowVersion();
 
             // Global query filter for multi-tenant isolation
-            // Extract tenant_id ONCE as a closure variable — EF Core can translate
-            // a local Guid variable to SQL, but it CANNOT translate HasClaim() calls.
-            Guid? tenantId = null;
-            try
-            {
-                if (_httpContextAccessor?.HttpContext?.User.HasClaim(c => c.Type == "tenant_id") == true)
-                {
-                    var raw = _httpContextAccessor.HttpContext.User.FindFirst("tenant_id")?.Value;
-                    if (!string.IsNullOrEmpty(raw) && Guid.TryParse(raw, out var parsed))
-                        tenantId = parsed;
-                }
-            }
-            catch { /* No tenant context (e.g. during startup/seed) — leave null */ }
-
-            if (tenantId.HasValue)
-            {
-                var tid = tenantId.Value;
-
-                modelBuilder.Entity<Product>().HasQueryFilter(p => p.TenantId == tid);
-                modelBuilder.Entity<Category>().HasQueryFilter(c => c.TenantId == tid);
-                modelBuilder.Entity<Sale>().HasQueryFilter(s => s.TenantId == tid);
-                modelBuilder.Entity<Customer>().HasQueryFilter(c => c.TenantId == tid);
-                modelBuilder.Entity<CashRegister>().HasQueryFilter(cr => cr.TenantId == tid);
-                modelBuilder.Entity<Notification>().HasQueryFilter(n => n.TenantId == null || n.TenantId == tid);
-                modelBuilder.Entity<LensType>().HasQueryFilter(l => l.TenantId == tid);
-                modelBuilder.Entity<LensIndex>().HasQueryFilter(l => l.TenantId == tid);
-                modelBuilder.Entity<LensExtra>().HasQueryFilter(l => l.TenantId == tid);
-                modelBuilder.Entity<GraduationRange>().HasQueryFilter(g => g.TenantId == tid);
-                modelBuilder.Entity<OpticalPrescription>().HasQueryFilter(o => o.TenantId == tid);
-                modelBuilder.Entity<OpticalQuote>().HasQueryFilter(o => o.TenantId == tid);
-                modelBuilder.Entity<PromotionalRule>().HasQueryFilter(p => p.TenantId == tid);
-                modelBuilder.Entity<FrameLensRule>().HasQueryFilter(f => f.TenantId == tid);
-            }
+            // ALWAYS register the filters. EF Core caches the model once, but the lambdas
+            // capture _tenantId BY REFERENCE — each scoped DbContext reads its own value.
+            // When _tenantId is null (startup/seed), filters pass everything through.
+            modelBuilder.Entity<Product>().HasQueryFilter(p => _tenantId == null || p.TenantId == _tenantId.Value);
+            modelBuilder.Entity<Category>().HasQueryFilter(c => _tenantId == null || c.TenantId == _tenantId.Value);
+            modelBuilder.Entity<Sale>().HasQueryFilter(s => _tenantId == null || s.TenantId == _tenantId.Value);
+            modelBuilder.Entity<Customer>().HasQueryFilter(c => _tenantId == null || c.TenantId == _tenantId.Value);
+            modelBuilder.Entity<CashRegister>().HasQueryFilter(cr => _tenantId == null || cr.TenantId == _tenantId.Value);
+            modelBuilder.Entity<Notification>().HasQueryFilter(n => _tenantId == null || n.TenantId == null || n.TenantId == _tenantId.Value);
+            modelBuilder.Entity<LensType>().HasQueryFilter(l => _tenantId == null || l.TenantId == _tenantId.Value);
+            modelBuilder.Entity<LensIndex>().HasQueryFilter(l => _tenantId == null || l.TenantId == _tenantId.Value);
+            modelBuilder.Entity<LensExtra>().HasQueryFilter(l => _tenantId == null || l.TenantId == _tenantId.Value);
+            modelBuilder.Entity<GraduationRange>().HasQueryFilter(g => _tenantId == null || g.TenantId == _tenantId.Value);
+            modelBuilder.Entity<OpticalPrescription>().HasQueryFilter(o => _tenantId == null || o.TenantId == _tenantId.Value);
+            modelBuilder.Entity<OpticalQuote>().HasQueryFilter(o => _tenantId == null || o.TenantId == _tenantId.Value);
+            modelBuilder.Entity<PromotionalRule>().HasQueryFilter(p => _tenantId == null || p.TenantId == _tenantId.Value);
+            modelBuilder.Entity<FrameLensRule>().HasQueryFilter(f => _tenantId == null || f.TenantId == _tenantId.Value);
 
             // Decimals
             modelBuilder.Entity<Product>().Property(p => p.Price).HasColumnType("decimal(10,2)");
