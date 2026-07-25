@@ -146,6 +146,14 @@ namespace SaasPos.Backend.Data
 
             SaveChanges();
 
+            // ── Default Tenant ─────────────────────────────────────────────────────
+            if (!Tenants.Any())
+            {
+                Tenants.Add(new Tenant { Name = "Default Tenant", Slug = "default" });
+                SaveChanges();
+            }
+            var tenantId = Tenants.First().Id;
+
             // ── Users ────────────────────────────────────────────────────────────
             if (!Users.Any())
             {
