@@ -101,16 +101,14 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
-// CORS — Dynamic: always reflect the Origin header so Railway deploys never break.
-// JWT Bearer auth (no cookies) means AllowAnyOrigin is safe here.
+// CORS — AllowAnyOrigin since we use JWT Bearer (no cookies = no CSRF risk).
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.SetIsOriginAllowed(_ => true)
+        policy.AllowAnyOrigin()
               .AllowAnyMethod()
-              .AllowAnyHeader()
-              .SetPreflightMaxAge(TimeSpan.FromMinutes(10));
+              .AllowAnyHeader();
     });
 });
 
@@ -653,6 +651,8 @@ using (var scope = app.Services.CreateScope())
 // Config Pipeline
 app.UseForwardedHeaders();
 
+app.UseCors();
+
 app.UseMiddleware<SecurityHeadersMiddleware>();
 
 // Railway maneja HTTPS en el edge — no redirigir internamente o causa 308 loop
@@ -668,7 +668,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseStaticFiles();
-app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 
