@@ -143,15 +143,198 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var db = serviceProvider.GetRequiredService<AppDbContext>();
-        db.Database.EnsureCreated();
+
+        // NEVER use EnsureCreated() — it drops & recreates the database when the EF model
+        // changes, destroying all client data. Use CREATE TABLE IF NOT EXISTS instead.
+        var baseTables = new[]
+        {
+            @"CREATE TABLE IF NOT EXISTS ""Tenants"" (
+                ""Id"" uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+                ""Name"" text NOT NULL,
+                ""Slug"" text NOT NULL,
+                ""Email"" text NULL,
+                ""Phone"" text NULL,
+                ""Address"" text NULL,
+                ""LogoUrl"" text NULL,
+                ""BusinessType"" text NOT NULL DEFAULT 'TIENDA',
+                ""IsActive"" boolean NOT NULL DEFAULT true,
+                ""CreatedAt"" timestamp NOT NULL DEFAULT now(),
+                ""UpdatedAt"" timestamp NOT NULL DEFAULT now()
+            );",
+            @"CREATE TABLE IF NOT EXISTS ""Roles"" (
+                ""Id"" uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+                ""Name"" text NOT NULL,
+                ""CreatedAt"" timestamp NOT NULL DEFAULT now(),
+                ""UpdatedAt"" timestamp NOT NULL DEFAULT now()
+            );",
+            @"CREATE TABLE IF NOT EXISTS ""Permissions"" (
+                ""Id"" uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+                ""Code"" text NOT NULL,
+                ""Description"" text NOT NULL
+            );",
+            @"CREATE TABLE IF NOT EXISTS ""RolePermissions"" (
+                ""RoleId"" uuid NOT NULL,
+                ""PermissionId"" uuid NOT NULL,
+                PRIMARY KEY (""RoleId"", ""PermissionId"")
+            );",
+            @"CREATE TABLE IF NOT EXISTS ""Users"" (
+                ""Id"" uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+                ""TenantId"" uuid NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
+                ""Name"" text NOT NULL,
+                ""Email"" text NOT NULL,
+                ""PasswordHash"" text NOT NULL,
+                ""RoleId"" uuid NOT NULL,
+                ""IsActive"" boolean NOT NULL DEFAULT true,
+                ""LastLoginAt"" timestamp NULL,
+                ""CreatedAt"" timestamp NOT NULL DEFAULT now(),
+                ""UpdatedAt"" timestamp NOT NULL DEFAULT now(),
+                ""DeletedAt"" timestamp NULL
+            );",
+            @"CREATE TABLE IF NOT EXISTS ""Categories"" (
+                ""Id"" uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+                ""TenantId"" uuid NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
+                ""Name"" text NOT NULL,
+                ""CreatedAt"" timestamp NOT NULL DEFAULT now(),
+                ""UpdatedAt"" timestamp NOT NULL DEFAULT now(),
+                ""DeletedAt"" timestamp NULL
+            );",
+            @"CREATE TABLE IF NOT EXISTS ""Products"" (
+                ""Id"" uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+                ""TenantId"" uuid NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
+                ""Name"" text NOT NULL,
+                ""Code"" text NULL,
+                ""Sku"" text NOT NULL,
+                ""InternalCode"" text NOT NULL DEFAULT '',
+                ""Barcode"" text NULL,
+                ""Price"" numeric(10,2) NOT NULL DEFAULT 0,
+                ""Cost"" numeric(10,2) NOT NULL DEFAULT 0,
+                ""Stock"" numeric(12,3) NOT NULL DEFAULT 0,
+                ""MinStock"" numeric NOT NULL DEFAULT 0,
+                ""CategoryId"" uuid NOT NULL,
+                ""ImageUrl"" text NULL,
+                ""IsActive"" boolean NOT NULL DEFAULT true,
+                ""SaleType"" text NOT NULL DEFAULT 'UNIT',
+                ""DiscountPercentage"" numeric(5,2) NOT NULL DEFAULT 0,
+                ""Status"" text NOT NULL DEFAULT 'ACTIVE',
+                ""IsPriority"" boolean NOT NULL DEFAULT false,
+                ""ExpirationDate"" timestamp NULL,
+                ""IdealStock"" numeric NOT NULL DEFAULT 0,
+                ""WholesalePrice"" numeric NOT NULL DEFAULT 0,
+                ""WholesaleMinQty"" numeric NOT NULL DEFAULT 0,
+                ""TrackStock"" boolean NOT NULL DEFAULT true,
+                ""RowVersion"" bytea NULL,
+                ""CreatedAt"" timestamp NOT NULL DEFAULT now(),
+                ""UpdatedAt"" timestamp NOT NULL DEFAULT now(),
+                ""DeletedAt"" timestamp NULL
+            );",
+            @"CREATE TABLE IF NOT EXISTS ""Sales"" (
+                ""Id"" uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+                ""TenantId"" uuid NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
+                ""UserId"" uuid NOT NULL,
+                ""CustomerId"" uuid NULL,
+                ""Total"" numeric(12,2) NOT NULL DEFAULT 0,
+                ""Tax"" numeric(12,2) NOT NULL DEFAULT 0,
+                ""Discount"" numeric(12,2) NOT NULL DEFAULT 0,
+                ""PaymentStatus"" text NOT NULL,
+                ""Status"" text NOT NULL,
+                ""CreatedAt"" timestamp NOT NULL DEFAULT now(),
+                ""UpdatedAt"" timestamp NOT NULL DEFAULT now(),
+                ""DeletedAt"" timestamp NULL
+            );",
+            @"CREATE TABLE IF NOT EXISTS ""SaleItems"" (
+                ""Id"" uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+                ""SaleId"" uuid NOT NULL,
+                ""ProductId"" uuid NOT NULL,
+                ""Quantity"" numeric(12,3) NOT NULL DEFAULT 0,
+                ""Price"" numeric(10,2) NOT NULL DEFAULT 0,
+                ""Subtotal"" numeric(12,2) NOT NULL DEFAULT 0,
+                ""DiscountApplied"" numeric(12,2) NOT NULL DEFAULT 0,
+                ""CustomName"" text NULL
+            );",
+            @"CREATE TABLE IF NOT EXISTS ""Payments"" (
+                ""Id"" uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+                ""SaleId"" uuid NOT NULL,
+                ""Method"" text NOT NULL,
+                ""Amount"" numeric NOT NULL DEFAULT 0,
+                ""CreatedAt"" timestamp NOT NULL DEFAULT now()
+            );",
+            @"CREATE TABLE IF NOT EXISTS ""StockMovements"" (
+                ""Id"" uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+                ""ProductId"" uuid NOT NULL,
+                ""Type"" text NOT NULL,
+                ""Quantity"" numeric(12,3) NOT NULL DEFAULT 0,
+                ""StockBefore"" numeric NOT NULL DEFAULT 0,
+                ""StockAfter"" numeric NOT NULL DEFAULT 0,
+                ""Reason"" text NOT NULL,
+                ""ReferenceId"" text NULL,
+                ""UserId"" uuid NOT NULL,
+                ""CreatedAt"" timestamp NOT NULL DEFAULT now()
+            );",
+            @"CREATE TABLE IF NOT EXISTS ""CashRegisters"" (
+                ""Id"" uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+                ""TenantId"" uuid NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
+                ""OpenedByUserId"" uuid NULL,
+                ""OpenedAt"" timestamp NOT NULL DEFAULT now(),
+                ""OpeningAmount"" numeric(12,2) NOT NULL DEFAULT 0,
+                ""ClosedByUserId"" uuid NULL,
+                ""ClosedAt"" timestamp NULL,
+                ""ClosingAmountCash"" numeric(12,2) NULL,
+                ""ExpectedAmountCash"" numeric(12,2) NULL,
+                ""DifferenceCash"" numeric(12,2) NULL,
+                ""DifferenceReason"" text NULL,
+                ""Status"" text NOT NULL,
+                ""CreatedAt"" timestamp NOT NULL DEFAULT now()
+            );",
+            @"CREATE TABLE IF NOT EXISTS ""CashMovements"" (
+                ""Id"" uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+                ""CashRegisterId"" uuid NOT NULL,
+                ""Type"" text NOT NULL,
+                ""Amount"" numeric(12,2) NOT NULL DEFAULT 0,
+                ""PaymentMethod"" text NOT NULL,
+                ""Reason"" text NOT NULL,
+                ""UserId"" uuid NOT NULL,
+                ""CreatedAt"" timestamp NOT NULL DEFAULT now()
+            );",
+            @"CREATE TABLE IF NOT EXISTS ""CashSalesSummaries"" (
+                ""Id"" uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+                ""CashRegisterId"" uuid NOT NULL,
+                ""PaymentMethod"" text NOT NULL,
+                ""TotalAmount"" numeric(12,2) NOT NULL DEFAULT 0,
+                ""CreatedAt"" timestamp NOT NULL DEFAULT now()
+            );",
+            @"CREATE TABLE IF NOT EXISTS ""CashAuditLogs"" (
+                ""Id"" uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+                ""CashRegisterId"" uuid NOT NULL,
+                ""Action"" text NOT NULL,
+                ""PreviousValue"" text NULL,
+                ""NewValue"" text NULL,
+                ""UserId"" uuid NOT NULL,
+                ""CreatedAt"" timestamp NOT NULL DEFAULT now()
+            );",
+            @"CREATE TABLE IF NOT EXISTS ""Customers"" (
+                ""Id"" uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+                ""TenantId"" uuid NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
+                ""Name"" text NOT NULL,
+                ""DocumentId"" text NULL,
+                ""Phone"" text NULL,
+                ""Email"" text NULL,
+                ""BirthDate"" timestamp NULL,
+                ""CreditLimit"" numeric(12,2) NOT NULL DEFAULT 0,
+                ""Balance"" numeric(12,2) NOT NULL DEFAULT 0,
+                ""CreatedAt"" timestamp NOT NULL DEFAULT now(),
+                ""UpdatedAt"" timestamp NOT NULL DEFAULT now(),
+                ""DeletedAt"" timestamp NULL
+            );",
+        };
+        foreach (var sql in baseTables)
+        {
+            try { db.Database.ExecuteSqlRaw(sql); }
+            catch (Exception tblEx) { Console.WriteLine($"Base table migration skipped: {tblEx.Message}"); }
+        }
         Console.WriteLine("Database initialized successfully.");
 
-        // NOTE: The raw SQL migrations below are a temporary solution for schema evolution.
-        // TODO: Replace with proper EF Core migrations by running:
-        //   dotnet ef migrations add InitialCreate --project backend
-        //   dotnet ef migrations add <MigrationName> --project backend
-        // Then replace EnsureCreated() with db.Database.Migrate() above.
-        // The raw SQL migrations below should be removed once EF Core migrations are in place.
+        // NOTE: The raw SQL migrations below handle schema evolution safely using
+        // CREATE TABLE IF NOT EXISTS and ADD COLUMN IF NOT EXISTS. They never delete data.
 
         // Migrations manuales: agregar columnas nuevas si no existen
         var columnMigrations = new[]
