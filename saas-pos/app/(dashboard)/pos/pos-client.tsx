@@ -305,6 +305,11 @@ export default function POSClient() {
         const term = manualInput.toLowerCase()
         const matchesBarcode = p.barcodes?.some((b: any) => b.barcode?.toLowerCase().includes(term))
         return matchesCategory && (p.name.toLowerCase().includes(term) || p.barcode?.toLowerCase().includes(term) || p.internalCode?.toLowerCase().includes(term) || matchesBarcode)
+    }).sort((a, b) => {
+        const aOut = a.trackStock && a.stock <= 0 ? 1 : 0
+        const bOut = b.trackStock && b.stock <= 0 ? 1 : 0
+        if (aOut !== bOut) return aOut - bOut
+        return a.name.localeCompare(b.name)
     })
 
     const total = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0)
