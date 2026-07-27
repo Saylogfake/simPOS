@@ -27,8 +27,9 @@ namespace SaasPos.Backend.Controllers
         {
             var tenantId = GetTenantId();
 
+            var cutoff = DateTime.UtcNow.AddDays(-7);
             var notifications = await _db.Notifications
-                .Where(n => n.TenantId == null || n.TenantId == tenantId)
+                .Where(n => (n.TenantId == null || n.TenantId == tenantId) && n.CreatedAt >= cutoff)
                 .OrderByDescending(n => n.CreatedAt)
                 .Take(50)
                 .Select(n => new {

@@ -658,6 +658,15 @@ using (var scope = app.Services.CreateScope())
             Console.WriteLine($"TenantId fix skipped: {tenantFixEx.Message}");
         }
 
+        // Cleanup: eliminar notificaciones mayores a 7 días
+        try
+        {
+            var deleted = db.Database.ExecuteSqlRaw(
+                @"DELETE FROM ""Notifications"" WHERE ""CreatedAt"" < now() - interval '7 days'");
+            if (deleted > 0) Console.WriteLine($"Notifications cleanup: {deleted} old notifications deleted.");
+        }
+        catch (Exception notifEx) { Console.WriteLine($"Notifications cleanup skipped: {notifEx.Message}"); }
+
         // Seed initial data only when the database is empty (first deploy)
         if (!db.Users.Any())
         {
